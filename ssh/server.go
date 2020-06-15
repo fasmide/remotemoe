@@ -127,7 +127,7 @@ func (s *Server) AcceptSession(session ssh.NewChannel) error {
 	}(requests)
 
 	// setup this sessions terminal
-	fmt.Fprintf(channel, "Hello %s\nThis is remotemoe - take a look around...", session.ExtraData)
+	fmt.Fprintf(channel, "Hello\r\nThis is remotemoe - take a look around...\r\n")
 	term := terminal.NewTerminal(channel, "> ")
 	go func() {
 		defer channel.Close()
@@ -136,7 +136,7 @@ func (s *Server) AcceptSession(session ssh.NewChannel) error {
 			if err != nil {
 				break
 			}
-			fmt.Println(line)
+			term.Write([]byte(fmt.Sprintf("What does %s mean?\r\n", line)))
 		}
 	}()
 
