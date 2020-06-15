@@ -13,11 +13,6 @@ var RawPrivateKey string
 // DefaultConfig generates a default ssh.ServerConfig
 func DefaultConfig() (*ssh.ServerConfig, error) {
 	config := &ssh.ServerConfig{
-		// Remove to disable password auth.
-		PasswordCallback: func(c ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
-			return nil, nil
-		},
-
 		// Remove to disable public key auth.
 		PublicKeyCallback: func(c ssh.ConnMetadata, pubKey ssh.PublicKey) (*ssh.Permissions, error) {
 			return &ssh.Permissions{
