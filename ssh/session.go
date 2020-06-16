@@ -50,11 +50,14 @@ func (s *Session) Handle() {
 	// block here until the end of time
 	s.HandleChannels()
 
+	// No reason to keep the timer active
+	s.DisableTimeout()
 }
 
 // Timeout fires when the session has done too much idling
 func (s *Session) Timeout() {
 	logger.Printf("%s idle for more then %s:, closing", s.clearConn.RemoteAddr(), IdleTimeout)
+
 	err := s.secureConn.Close()
 	if err != nil {
 		logger.Printf("could not close secureConnection: %s", err)
@@ -62,7 +65,7 @@ func (s *Session) Timeout() {
 
 }
 
-// PokeTimer adds to its duration - unless disabled
+// PokeTimeout adds to its duration - unless disabled
 func (s *Session) PokeTimeout() {
 	s.idleLock.Lock()
 	defer s.idleLock.Unlock()
