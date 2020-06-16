@@ -36,7 +36,10 @@ type Session struct {
 func (s *Session) Handle() {
 
 	// initialize msgs channel
-	s.msgs = make(chan string)
+	// we are doing a buffered channel, as a slutty way of not blocking `-N` connections
+	// as no terminal is available, we will just buffer them and
+	// get on with our lives ... time will tell if this is a good idea :)
+	s.msgs = make(chan string, 15)
 
 	// if a connection havnt done anything usefull within a minute, throw them away
 	s.idleTimeout = time.AfterFunc(IdleTimeout, s.Timeout)
@@ -74,6 +77,16 @@ func (s *Session) PokeTimeout() {
 	}
 
 	s.idleTimeout.Reset(IdleTimeout)
+}
+
+// DisableTimeout disables the idle timeout, used when a connection provides some endpoints
+// i.e. requests ports to be forwarded...
+func (s *Session) DisableTimeout() {
+	s.idleLock.Lock()
+	defer s.idleLock.Unlock()
+
+	s.idleTimeout.Stop()
+	s.idleDisabled = true
 }
 
 func (s *Session) HandleChannels() {
@@ -118,7 +131,9 @@ func (s *Session) HandleRequests() {
 
 			logger.Printf("%s: tcpip-forward: %+v", s.clearConn.RemoteAddr(), forwardInfo)
 			req.Reply(true, nil)
+
 			s.msgs <- fmt.Sprintf("I have accepted your port %d, it will be available on %s", forwardInfo.Rport, "lkasjdlkajsd.eu.remote.moe")
+			s.DisableTimeout()
 			continue
 		}
 
