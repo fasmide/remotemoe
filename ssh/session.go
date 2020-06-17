@@ -262,3 +262,8 @@ func (s *Session) AcceptForwardRequest(fr ssh.NewChannel) error {
 func (s *Session) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
 	return nil, fmt.Errorf("to be implemented")
 }
+
+// Replaced is called when another ssh session is replacing this current one
+func (s *Session) Replaced() {
+
+}
