@@ -1,12 +1,14 @@
 package ssh
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net"
 	"sync"
 	"time"
 
+	"github.com/fatih/color"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/terminal"
 )
@@ -31,6 +33,10 @@ type Session struct {
 
 	// messages to the terminal (i.e. the user)
 	msgs chan string
+
+	// services list of forwarded port numbers
+	// these are just indicators that the remote sent a tcpip-forward request sometime
+	services map[uint32]struct{}
 }
 
 func (s *Session) Handle() {
@@ -40,6 +46,9 @@ func (s *Session) Handle() {
 	// as no terminal is available, we will just buffer them and
 	// get on with our lives ... time will tell if this is a good idea :)
 	s.msgs = make(chan string, 15)
+
+	// initialize services map
+	s.services = make(map[uint32]struct{})
 
 	// if a connection havnt done anything usefull within a minute, throw them away
 	s.idleTimeout = time.AfterFunc(IdleTimeout, s.Timeout)
@@ -132,11 +141,14 @@ func (s *Session) HandleRequests() {
 				continue
 			}
 
-			logger.Printf("%s: tcpip-forward: %+v", s.clearConn.RemoteAddr(), forwardInfo)
-			req.Reply(true, nil)
+			// store this port number in services - future Dial's to this session
+			// will know if the service is available by looking in there
+			s.services[forwardInfo.Rport] = struct{}{}
 
-			s.msgs <- fmt.Sprintf("I have accepted your port %d, it will be available on %s", forwardInfo.Rport, "lkasjdlkajsd.eu.remote.moe")
+			// disable idle timeout now that the connection is actually usefull
 			s.DisableTimeout()
+
+			req.Reply(true, nil)
 			continue
 		}
 
@@ -201,11 +213,22 @@ func (s *Session) AcceptSession(session ssh.NewChannel) error {
 }
 
 func (s *Session) HandleCommand(c string, output io.Writer) {
+
 	switch c {
 	case "":
 		// nothing
 	case "coffie":
 		fmt.Fprint(output, "Sure! - have some coffie\r\n")
+	case "ls":
+		portColor := color.New(color.FgMagenta)
+		fmt.Fprint(output, "Active ports:")
+		for k := range s.services {
+			fmt.Fprint(output, " ")
+			portColor.Fprintf(output, "%d", k)
+		}
+		fmt.Fprint(output, "\r\n\r\n")
+		fmt.Fprint(output, "Add forwards by using the -R ssh parameter.\r\ne.g. for http and https services:\r\n\r\n")
+		fmt.Fprintf(output, "\tssh %s -R80:localhost:80 -R443:localhost:443\r\n\r\n", "FIXME.eu.remote.moe")
 	default:
 		fmt.Fprintf(output, "%s: command not found\r\n", c)
 	}
@@ -233,4 +256,9 @@ func (s *Session) AcceptForwardRequest(fr ssh.NewChannel) error {
 	go ssh.DiscardRequests(requests)
 
 	return nil
+}
+
+// DialContext tries to dial connections though the ssh session
+func (s *Session) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
+	return nil, fmt.Errorf("to be implemented")
 }
