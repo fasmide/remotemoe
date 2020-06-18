@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/fasmide/remotemoe/router"
 	"github.com/fasmide/remotemoe/ssh"
 )
 
@@ -34,6 +35,8 @@ func main() {
 	}
 
 	log.Print("ssh listening on ", listener.Addr())
-	sshServer := ssh.Server{Config: sshConfig}
+
+	router := router.New()
+	sshServer := ssh.Server{Config: sshConfig, Router: router}
 	sshServer.Listen(listener)
 }

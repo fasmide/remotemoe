@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/fasmide/remotemoe/router"
 	"github.com/fatih/color"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/terminal"
@@ -37,6 +38,9 @@ type Session struct {
 	// services list of forwarded port numbers
 	// these are just indicators that the remote sent a tcpip-forward request sometime
 	services map[uint32]struct{}
+
+	// router specifies where we publish the session
+	router *router.Router
 }
 
 func (s *Session) Handle() {
@@ -53,11 +57,21 @@ func (s *Session) Handle() {
 	// if a connection havnt done anything usefull within a minute, throw them away
 	s.idleTimeout = time.AfterFunc(IdleTimeout, s.Timeout)
 
+	// take over existing routes
+	replaced := s.router.Replace(s.secureConn.Permissions.Extensions["pubkey-fp"], s)
+	if replaced {
+		warning := color.New(color.BgYellow, color.FgBlack, color.Bold).Sprint("warn")
+		s.msgs <- fmt.Sprintf("%s: this session replaced another session with the same publickey", warning)
+	}
+
 	// The incoming Request channel must be serviced.
 	go s.HandleRequests()
 
 	// block here until the end of time
 	s.HandleChannels()
+
+	// s.router.Remove will remove this session only if it is the currently active one
+	s.router.Remove(s.secureConn.Permissions.Extensions["pubkey-fp"], s)
 
 	// No reason to keep the timer active
 	s.DisableTimeout()
@@ -74,7 +88,7 @@ func (s *Session) Timeout() {
 
 }
 
-// PokeTimeout adds to its duration - unless disabled
+// PokeTimeout postprones the idle timer - unless disabled or already fired
 func (s *Session) PokeTimeout() {
 	s.idleLock.Lock()
 	defer s.idleLock.Unlock()
@@ -174,7 +188,6 @@ func (s *Session) AcceptSession(session ssh.NewChannel) error {
 	}(requests)
 
 	// setup this sessions terminal
-	fmt.Fprintf(channel, "Hello\r\nThis is remotemoe - take a look around...\r\n")
 	term := terminal.NewTerminal(channel, "$ ")
 
 	// read commands off the terminal and put them into commands channel
@@ -265,5 +278,11 @@ func (s *Session) DialContext(ctx context.Context, network, address string) (net
 
 // Replaced is called when another ssh session is replacing this current one
 func (s *Session) Replaced() {
+	warning := color.New(color.BgYellow, color.FgBlack, color.Bold).Sprint("warn")
+	s.msgs <- fmt.Sprintf("%s: this session will be closed, another session just opened with the same publickey, bye!", warning)
 
+	// FIXME: figure out a proper way of flushing msgs to the end user
+	time.Sleep(500 * time.Millisecond)
+
+	s.secureConn.Close()
 }

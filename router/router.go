@@ -43,11 +43,20 @@ func (r *Router) Replace(n string, d Routable) bool {
 	return exists
 }
 
-// Remove removes a route
-func (r *Router) Remove(n string) {
+// Remove removes a route by name and Routable
+func (r *Router) Remove(n string, d Routable) {
 	r.Lock()
-	delete(r.endpoints, n)
-	r.Unlock()
+	defer r.Unlock()
+
+	endpoint, ok := r.endpoints[n]
+	if !ok {
+		return
+	}
+
+	if d == endpoint {
+		delete(r.endpoints, n)
+	}
+
 }
 
 // Find fetches a route
