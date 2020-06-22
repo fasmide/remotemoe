@@ -3,6 +3,7 @@ package router
 import (
 	"context"
 	"fmt"
+	"log"
 	"net"
 	"strings"
 	"sync"
@@ -46,6 +47,7 @@ func (r *Router) Replace(n string, d Routable) bool {
 	}
 	r.endpoints[n] = d
 	r.Unlock()
+	log.Printf("replaced %s", n)
 	return exists
 }
 

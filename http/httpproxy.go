@@ -1,7 +1,6 @@
 package http
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httputil"
 	"time"
@@ -21,14 +20,14 @@ func (h *HttpProxy) Initialize() {
 	transport := &http.Transport{
 		DialContext:           h.Router.DialContext,
 		ForceAttemptHTTP2:     true,
-		MaxIdleConns:          100,
+		MaxIdleConns:          1000,
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 	}
 	h.Director = func(r *http.Request) {
 		r.URL.Scheme = "http"
-		fmt.Printf("path: %s", r.URL.String())
+		r.URL.Host = r.Host
 	}
 	h.Transport = transport
 
