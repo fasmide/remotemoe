@@ -2,11 +2,10 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"net"
-	"net/http"
 
+	"github.com/fasmide/remotemoe/http"
 	"github.com/fasmide/remotemoe/router"
 	"github.com/fasmide/remotemoe/ssh"
 )
@@ -17,10 +16,19 @@ var httpPort = flag.Int("httpport", 0, "http listen port")
 func main() {
 	flag.Parse()
 
+	router := router.New()
+
+	proxy := &http.HttpProxy{Router: router}
+	proxy.Initialize()
+
+	httpListener, err := net.ListenTCP("tcp", &net.TCPAddr{Port: *httpPort})
+	if err != nil {
+		log.Fatalf("cannot listen for ssh connections: %s", err)
+	}
+	HTTPServer := http.New()
+	HTTPServer.Handler = proxy
 	go func() {
-		l := fmt.Sprintf(":%d", *httpPort)
-		log.Print("http listening on ", l)
-		log.Printf("http server failed: %s", http.ListenAndServe(l, nil))
+		log.Printf("http server failed: %s", HTTPServer.Listen(httpListener))
 		// we dont care if this http server fails
 	}()
 
@@ -36,7 +44,6 @@ func main() {
 
 	log.Print("ssh listening on ", listener.Addr())
 
-	router := router.New()
 	sshServer := ssh.Server{Config: sshConfig, Router: router}
 	sshServer.Listen(listener)
 }
