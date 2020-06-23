@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strconv"
 	"sync"
 	"time"
 
@@ -272,8 +273,32 @@ func (s *Session) AcceptForwardRequest(fr ssh.NewChannel) error {
 }
 
 // DialContext tries to dial connections though the ssh session
+// FIXME: figure out what to do with the Context
 func (s *Session) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
-	return nil, fmt.Errorf("to be implemented")
+	_, port, err := net.SplitHostPort(address)
+	if err != nil {
+		return nil, fmt.Errorf("unable to figure out host and port: %w", err)
+	}
+
+	p, err := strconv.Atoi(port)
+	if err != nil {
+		return nil, fmt.Errorf("unable to convert port number to int: %w", err)
+	}
+
+	channel, reqs, err := s.secureConn.OpenChannel("forwarded-tcpip", ssh.Marshal(directTCPIP{
+		Addr:  "localhost",
+		Rport: uint32(p),
+	}))
+
+	if err != nil {
+		return nil, fmt.Errorf("could not open remote channel: %w", err)
+	}
+
+	go ssh.DiscardRequests(reqs)
+
+	cConn := &ChannelConn{Channel: channel}
+	return cConn, nil
+
 }
 
 // Replaced is called when another ssh session is replacing this current one

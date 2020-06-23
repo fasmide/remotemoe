@@ -3,7 +3,6 @@ package router
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
 	"strings"
 	"sync"
@@ -45,9 +44,10 @@ func (r *Router) Replace(n string, d Routable) bool {
 	if exists {
 		go oldRoute.Replaced()
 	}
+
 	r.endpoints[n] = d
 	r.Unlock()
-	log.Printf("replaced %s", n)
+
 	return exists
 }
 
@@ -78,9 +78,9 @@ func (r *Router) Find(n string) (Routable, bool) {
 // DialContext is used by stuff that what to dial something up
 func (r *Router) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
 	// we are looking for the lowest level subdomain, if given
-	// blarh.something.remote.moe
+	// blarh.something.remote.moe:80
 	// the result should be "blarh"
-	parts := strings.SplitN(address, ".", 1)
+	parts := strings.SplitN(address, ".", 2)
 	if parts[0] == "" {
 		return nil, fmt.Errorf("not quite sure what you want to dial: %s", address)
 	}
@@ -90,7 +90,7 @@ func (r *Router) DialContext(ctx context.Context, network, address string) (net.
 	r.RUnlock()
 
 	if !exists {
-		return nil, fmt.Errorf("i do not know anything like %s", address).(ErrNotFound)
+		return nil, fmt.Errorf("i do not know anything like %s", parts[0]).(ErrNotFound)
 	}
 
 	return d.DialContext(ctx, network, address)
