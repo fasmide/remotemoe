@@ -4,6 +4,7 @@ import (
 	"flag"
 	"log"
 	"net"
+	gohttp "net/http"
 
 	"github.com/fasmide/remotemoe/http"
 	"github.com/fasmide/remotemoe/router"
@@ -25,10 +26,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("cannot listen for ssh connections: %s", err)
 	}
-	HTTPServer := http.New()
-	HTTPServer.Handler = proxy
+
 	go func() {
-		log.Printf("http server failed: %s", HTTPServer.Listen(httpListener))
+		gohttp.Serve(httpListener, proxy)
 		// we dont care if this http server fails
 	}()
 

@@ -58,7 +58,7 @@ func (s *Session) Handle() {
 	s.idleTimeout = time.AfterFunc(IdleTimeout, s.Timeout)
 
 	// take over existing routes
-	replaced := s.router.Replace(s.secureConn.Permissions.Extensions["pubkey-fp"], s)
+	replaced := s.router.Replace(s.secureConn.Permissions.Extensions["pubkey-ish"], s)
 	if replaced {
 		warning := color.New(color.BgYellow, color.FgBlack, color.Bold).Sprint("warn")
 		s.msgs <- fmt.Sprintf("%s: this session replaced another session with the same publickey", warning)
@@ -71,7 +71,7 @@ func (s *Session) Handle() {
 	s.HandleChannels()
 
 	// s.router.Remove will remove this session only if it is the currently active one
-	s.router.Remove(s.secureConn.Permissions.Extensions["pubkey-fp"], s)
+	s.router.Remove(s.secureConn.Permissions.Extensions["pubkey-ish"], s)
 
 	// No reason to keep the timer active
 	s.DisableTimeout()
