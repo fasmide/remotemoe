@@ -234,7 +234,7 @@ func (s *Session) HandleCommand(c string, output io.Writer) {
 	case "coffie":
 		fmt.Fprint(output, "Sure! - have some coffie\r\n")
 	case "ls":
-		portColor := color.New(color.FgMagenta)
+		portColor := color.New(color.Bold)
 		fmt.Fprint(output, "Active ports:")
 		for k := range s.services {
 			fmt.Fprint(output, " ")
@@ -243,6 +243,66 @@ func (s *Session) HandleCommand(c string, output io.Writer) {
 		fmt.Fprint(output, "\r\n\r\n")
 		fmt.Fprint(output, "Add forwards by using the -R ssh parameter.\r\ne.g. for http and https services:\r\n\r\n")
 		fmt.Fprintf(output, "\tssh %s -R80:localhost:80 -R443:localhost:443\r\n\r\n", "FIXME.eu.remote.moe")
+	case "services":
+		bold := color.New(color.Bold)
+		ports := ""
+		for k := range s.services {
+			ports = fmt.Sprintf("%s %s", ports, bold.Sprintf("%d", k))
+		}
+
+		if ports == "" {
+			fmt.Fprintf(output, "You have %s forwarded ports, have a look in the ssh manual: %s.\r\n", bold.Sprint("zero"), bold.Sprint("man ssh"))
+			fmt.Fprintf(output, "You will be looking for the %s parameter.\r\n", bold.Sprint("-R"))
+		} else {
+			fmt.Fprintf(output, "Based on currently forwarded ports%s, your services will be available on:\r\n", ports)
+		}
+
+		fmt.Fprint(output, "\r\n")
+		fmt.Fprintf(output, "%s (80, 81, 3000, 8000 and 8080)", bold.Sprint("HTTP"))
+		fmt.Fprint(output, "\r\n")
+
+		help := true
+		if _, exists := s.services[80]; exists {
+			fmt.Fprintf(output, "http://%s.eu.remote.moe/\r\n", s.secureConn.Permissions.Extensions["pubkey-ish"])
+			help = false
+		}
+		if _, exists := s.services[8080]; exists {
+			fmt.Fprintf(output, "http://%s.eu.remote.moe:8080/\r\n", s.secureConn.Permissions.Extensions["pubkey-ish"])
+			help = false
+		}
+		if help {
+			fmt.Fprintf(output, "No HTTP services found, add some by appending `-R80:localhost:80` when connecting.\r\n")
+		}
+
+		fmt.Fprint(output, "\r\n")
+		fmt.Fprintf(output, "%s (443, 3443, 4443 and 8443)", bold.Sprint("HTTPS"))
+		fmt.Fprint(output, "\r\n")
+
+		help = true
+		if _, exists := s.services[443]; exists {
+			fmt.Fprintf(output, "https://%s.eu.remote.moe\r\n", s.secureConn.Permissions.Extensions["pubkey-ish"])
+			help = false
+		}
+		if help {
+			fmt.Fprintf(output, "No HTTPS services found, add some by appending `-R443:localhost:443` when connecting.\r\n")
+		}
+
+		fmt.Fprint(output, "\r\n")
+		fmt.Fprintf(output, "%s (22 and 2222)", bold.Sprint("SSH"))
+		fmt.Fprint(output, "\r\n")
+		help = true
+		if _, exists := s.services[22]; exists {
+			fmt.Fprintf(output, "ssh -J eu.remote.moe %s.eu.remote.moe\r\n", s.secureConn.Permissions.Extensions["pubkey-ish"])
+			help = false
+		}
+		if _, exists := s.services[2222]; exists {
+			fmt.Fprintf(output, "ssh -J eu.remote.moe:2222 %s.eu.remote.moe\r\n", s.secureConn.Permissions.Extensions["pubkey-ish"])
+			help = false
+		}
+		if help {
+			fmt.Fprintf(output, "No SSH services found, add some by appending `-R22:localhost:22` when connecting.\r\n")
+		}
+
 	default:
 		fmt.Fprintf(output, "%s: command not found\r\n", c)
 	}
