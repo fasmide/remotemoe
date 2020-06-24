@@ -27,8 +27,8 @@ type Server struct {
 	listener net.Listener
 }
 
-// Listen will listen and accept ssh connections
-func (s *Server) Listen(l net.Listener) {
+// Serve will accept ssh connections
+func (s *Server) Serve(l net.Listener) {
 	s.listener = l
 	for {
 		nConn, err := s.listener.Accept()

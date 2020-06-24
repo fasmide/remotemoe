@@ -4,15 +4,12 @@ import (
 	"flag"
 	"log"
 	"net"
-	gohttp "net/http"
 
 	"github.com/fasmide/remotemoe/http"
 	"github.com/fasmide/remotemoe/router"
+	"github.com/fasmide/remotemoe/services"
 	"github.com/fasmide/remotemoe/ssh"
 )
-
-var sshPort = flag.Int("sshport", 0, "ssh listen port")
-var httpPort = flag.Int("httpport", 0, "http listen port")
 
 func main() {
 	flag.Parse()
@@ -22,28 +19,40 @@ func main() {
 	proxy := &http.HttpProxy{Router: router}
 	proxy.Initialize()
 
-	httpListener, err := net.ListenTCP("tcp", &net.TCPAddr{Port: *httpPort})
-	if err != nil {
-		log.Fatalf("cannot listen for ssh connections: %s", err)
-	}
+	server := http.NewServer()
+	server.Handler = proxy
 
-	go func() {
-		gohttp.Serve(httpListener, proxy)
-		// we dont care if this http server fails
-	}()
+	for _, port := range services.Services["HTTP"] {
+		l, err := net.ListenTCP("tcp", &net.TCPAddr{Port: port})
+		if err != nil {
+			// listen errors are usually not a big deal, maybe the user just
+			// dont have permissions on privileged-ports but we are still able to work
+			// on higher portnumbers
+			log.Printf("cannot accept HTTP on %d: %s", port, err)
+			continue
+		}
+
+		log.Printf("accepting %s on %d", "HTTP", port)
+		go server.Serve(l)
+	}
 
 	sshConfig, err := ssh.DefaultConfig()
 	if err != nil {
 		log.Fatalf("cannot get default ssh config: %s", err)
 	}
 
-	listener, err := net.ListenTCP("tcp", &net.TCPAddr{Port: *sshPort})
-	if err != nil {
-		log.Fatalf("cannot listen for ssh connections: %s", err)
+	sshServer := ssh.Server{Config: sshConfig, Router: router}
+
+	for _, port := range services.Services["SSH"] {
+		l, err := net.ListenTCP("tcp", &net.TCPAddr{Port: port})
+		if err != nil {
+			log.Printf("cannot accept SSH on %d: %s", port, err)
+			continue
+		}
+
+		log.Printf("accepting %s on %d", "SSH", port)
+		go sshServer.Serve(l)
 	}
 
-	log.Print("ssh listening on ", listener.Addr())
-
-	sshServer := ssh.Server{Config: sshConfig, Router: router}
-	sshServer.Listen(listener)
+	select {}
 }

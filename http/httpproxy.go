@@ -1,6 +1,8 @@
 package http
 
 import (
+	"fmt"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"time"
@@ -25,10 +27,25 @@ func (h *HttpProxy) Initialize() {
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 	}
+
+	// This directory will try to set r.URL to something
+	// usefull based on the "virtualhost" and the destination tcp port
 	h.Director = func(r *http.Request) {
+		// maybe map the portnumer into a scheme ?
+		// we are fixed to having tls on 443 and non-tls on 80 anyway
 		r.URL.Scheme = "http"
-		r.URL.Host = r.Host
+
+		host, _, err := net.SplitHostPort(r.Host)
+		if err != nil {
+			host = r.Host
+		}
+
+		localAddr := r.Context().Value(localAddr("localaddr")).(string)
+		_, dstPort, _ := net.SplitHostPort(localAddr)
+
+		r.URL.Host = fmt.Sprintf("%s:%s", host, dstPort)
 	}
+
 	h.Transport = transport
 
 }
