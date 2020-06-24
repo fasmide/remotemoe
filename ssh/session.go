@@ -44,6 +44,7 @@ type Session struct {
 	router *router.Router
 }
 
+// Handle takes care of a Sessions lifetime
 func (s *Session) Handle() {
 
 	// initialize msgs channel
@@ -66,10 +67,10 @@ func (s *Session) Handle() {
 	}
 
 	// The incoming Request channel must be serviced.
-	go s.HandleRequests()
+	go s.handleRequests()
 
 	// block here until the end of time
-	s.HandleChannels()
+	s.handleChannels()
 
 	// s.router.Remove will remove this session only if it is the currently active one
 	s.router.Remove(s.secureConn.Permissions.Extensions["pubkey-ish"], s)
@@ -116,11 +117,11 @@ func (s *Session) DisableTimeout() {
 	s.idleDisabled = true
 }
 
-func (s *Session) HandleChannels() {
+func (s *Session) handleChannels() {
 	for channelRequest := range s.channelRequests {
 		// direct-tcpip forward requests
 		if channelRequest.ChannelType() == "direct-tcpip" {
-			err := s.AcceptForwardRequest(channelRequest)
+			err := s.acceptForwardRequest(channelRequest)
 			if err != nil {
 				logger.Printf("unable to accept channel: %s", err)
 			}
@@ -128,7 +129,7 @@ func (s *Session) HandleChannels() {
 		}
 
 		if channelRequest.ChannelType() == "session" {
-			err := s.AcceptSession(channelRequest)
+			err := s.acceptSession(channelRequest)
 			if err != nil {
 				logger.Printf("unable to accept session: %s", err)
 			}
@@ -138,7 +139,7 @@ func (s *Session) HandleChannels() {
 	}
 }
 
-func (s *Session) HandleRequests() {
+func (s *Session) handleRequests() {
 
 	for req := range s.requests {
 		if req.Type == "keepalive@openssh.com" {
@@ -174,8 +175,8 @@ func (s *Session) HandleRequests() {
 
 }
 
-// AcceptSession starts a new user terminal for the end user
-func (s *Session) AcceptSession(session ssh.NewChannel) error {
+// acceptSession starts a new user terminal for the end user
+func (s *Session) acceptSession(session ssh.NewChannel) error {
 	channel, requests, err := session.Accept()
 	if err != nil {
 		return fmt.Errorf("unable to accept channel: %w", err)
@@ -212,7 +213,7 @@ func (s *Session) AcceptSession(session ssh.NewChannel) error {
 				if !ok {
 					return
 				}
-				s.HandleCommand(cmd, term)
+				s.handleCommand(cmd, term)
 			case msg, ok := <-s.msgs:
 				if !ok {
 					return
@@ -226,7 +227,7 @@ func (s *Session) AcceptSession(session ssh.NewChannel) error {
 	return nil
 }
 
-func (s *Session) HandleCommand(c string, output io.Writer) {
+func (s *Session) handleCommand(c string, output io.Writer) {
 
 	switch c {
 	case "":
@@ -308,9 +309,9 @@ func (s *Session) HandleCommand(c string, output io.Writer) {
 	}
 }
 
-// AcceptForwardRequest parses information about the request, checks to see if an endpoint
+// acceptForwardRequest parses information about the request, checks to see if an endpoint
 // matching is available in the router and then io.Copy'es everything back and forth
-func (s *Session) AcceptForwardRequest(fr ssh.NewChannel) error {
+func (s *Session) acceptForwardRequest(fr ssh.NewChannel) error {
 	forwardInfo := directTCPIP{}
 	err := ssh.Unmarshal(fr.ExtraData(), &forwardInfo)
 	if err != nil {
