@@ -12,18 +12,42 @@ import (
 // RawPrivateKey could be set with ldflags on build time
 var RawPrivateKey string
 
+const noPublicKeyBanner = `                            __                              
+.----.-----.--------.-----.|  |_.-----.--------.-----.-----.
+|   _|  -__|        |  _  ||   _|  -__|        |  _  |  -__|
+|__| |_____|__|__|__|_____||____|_____|__|__|__|_____|_____|
+
+You somehow forgot to present a public key when trying to authenticate.
+Please continue by creating one:
+
+	ssh-keygen
+
+remotemoe accepts any key - see ya!`
+
 // DefaultConfig generates a default ssh.ServerConfig
 func DefaultConfig() (*ssh.ServerConfig, error) {
 	config := &ssh.ServerConfig{
+		MaxAuthTries: 1,
 		PublicKeyCallback: func(c ssh.ConnMetadata, pubKey ssh.PublicKey) (*ssh.Permissions, error) {
 			return &ssh.Permissions{
 				// Record the public key used for authentication.
 				Extensions: map[string]string{
-					"pubkey-fp":     ssh.FingerprintSHA256(pubKey),
+					"pubkey-fp":  ssh.FingerprintSHA256(pubKey),
 					"pubkey-ish": fingerprintIsh(pubKey),
-					"pubkey":        string(ssh.MarshalAuthorizedKey(pubKey)),
+					"pubkey":     string(ssh.MarshalAuthorizedKey(pubKey)),
 				},
 			}, nil
+		},
+		// We will use the keyboard interactive auth method as a way of telling the user that
+		// he needs to create a public key and use that instead - we should not get here if the user already has
+		// a working key and presented that in the first place
+		KeyboardInteractiveCallback: func(conn ssh.ConnMetadata, client ssh.KeyboardInteractiveChallenge) (*ssh.Permissions, error) {
+			_, err := client(conn.User(), noPublicKeyBanner, []string{""}, []bool{false})
+			if err != nil {
+				return nil, fmt.Errorf("error doing keyboard interactive challange: %w", err)
+			}
+
+			return nil, fmt.Errorf("user did not public key")
 		},
 	}
 
