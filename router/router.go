@@ -3,7 +3,6 @@ package router
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
 	"strings"
 	"sync"
@@ -81,7 +80,6 @@ func (r *Router) DialContext(ctx context.Context, network, address string) (net.
 	// we are looking for the lowest level subdomain, if given
 	// blarh.something.remote.moe:80
 	// the result should be "blarh"
-	log.Printf("connect: %s", address)
 	parts := strings.SplitN(address, ".", 2)
 	if parts[0] == "" {
 		return nil, fmt.Errorf("not quite sure what you want to dial: %s", address)
