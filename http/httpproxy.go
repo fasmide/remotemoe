@@ -28,7 +28,7 @@ func (h *HttpProxy) Initialize() {
 		ExpectContinueTimeout: 1 * time.Second,
 	}
 
-	// This directory will try to set r.URL to something
+	// This director will try to set r.URL to something
 	// usefull based on the "virtualhost" and the destination tcp port
 	h.Director = func(r *http.Request) {
 		// maybe map the portnumer into a scheme ?

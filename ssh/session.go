@@ -346,6 +346,12 @@ func (s *Session) DialContext(ctx context.Context, network, address string) (net
 		return nil, fmt.Errorf("unable to convert port number to int: %w", err)
 	}
 
+	// did the client forward this port prior to this request?
+	_, isActive := s.services[uint32(p)]
+	if !isActive {
+		return nil, fmt.Errorf("this client does not provide port %d", p)
+	}
+
 	channel, reqs, err := s.secureConn.OpenChannel("forwarded-tcpip", ssh.Marshal(directTCPIP{
 		Addr:  "localhost",
 		Rport: uint32(p),
