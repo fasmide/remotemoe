@@ -1,6 +1,7 @@
 package ssh
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -28,15 +29,16 @@ type Server struct {
 }
 
 // Serve will accept ssh connections
-func (s *Server) Serve(l net.Listener) {
+func (s *Server) Serve(l net.Listener) error {
 	s.listener = l
 	for {
 		nConn, err := s.listener.Accept()
 		if err != nil {
-			logger.Print("failed to accept incoming connection: ", err)
+			return fmt.Errorf("failed to accept incoming connection: %w", err)
 		}
 		go s.accept(nConn)
 	}
+
 }
 
 func (s *Server) accept(c net.Conn) {
