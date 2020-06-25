@@ -57,7 +57,6 @@ func (s *Server) accept(c net.Conn) {
 
 	authTimer.Stop()
 
-	logger.Printf("accepted session from %s", conn.RemoteAddr())
 	session := Session{
 		clearConn:       c,
 		secureConn:      conn,
@@ -67,6 +66,4 @@ func (s *Server) accept(c net.Conn) {
 	}
 
 	session.Handle()
-
-	logger.Print("client went away ", conn.RemoteAddr())
 }

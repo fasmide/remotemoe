@@ -27,6 +27,18 @@ remotemoe accepts any key - see ya!`
 // DefaultConfig generates a default ssh.ServerConfig
 func DefaultConfig() (*ssh.ServerConfig, error) {
 	config := &ssh.ServerConfig{
+		// try to take advantage of AES-NI, by moving chachapoly last of preferred ciphers
+		// 	* Well that didnt work - it seems the official ssh client really likes chacha20,
+		//	so if we really want AES-NI it seems we need to drop support for chacha20
+		Config: ssh.Config{
+			Ciphers: []string{
+				"aes128-gcm@openssh.com",
+				"aes128-ctr",
+				"aes192-ctr",
+				"aes256-ctr",
+				// "chacha20-poly1305@openssh.com",
+			},
+		},
 		MaxAuthTries: 1,
 		PublicKeyCallback: func(c ssh.ConnMetadata, pubKey ssh.PublicKey) (*ssh.Permissions, error) {
 			return &ssh.Permissions{

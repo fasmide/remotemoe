@@ -1,10 +1,15 @@
 package services
 
+import "os"
+
 // Services holds a map of servicename -> []ports
 var Services map[string][]int
 
 // Ports maps port numbers into service names
 var Ports map[int]string
+
+// Hostname is the name used when printing out msgs and such
+var Hostname string
 
 func init() {
 	Services = map[string][]int{
@@ -19,4 +24,11 @@ func init() {
 			Ports[p] = s
 		}
 	}
+
+	h, err := os.Hostname()
+	if err != nil {
+		panic(err)
+	}
+
+	Hostname = h
 }

@@ -25,7 +25,7 @@ func Serve(t string, s Server) {
 
 			err = s.Serve(l)
 			if err != nil {
-				log.Printf("%s on port %d stopped serving with error: %w", t, p, err)
+				log.Printf("%s on port %d stopped serving with error: %s", t, p, err)
 			}
 
 		}(t, port)

@@ -77,12 +77,17 @@ func (r *Router) Find(n string) (Routable, bool) {
 
 // DialContext is used by stuff that what to dial something up
 func (r *Router) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
+	host, port, err := net.SplitHostPort(address)
+	if err != nil {
+		return nil, fmt.Errorf("router: could not split host from port: %w", err)
+	}
+
 	// we are looking for the lowest level subdomain, if given
-	// blarh.something.remote.moe:80
+	// blarh.something.hostname:80
 	// the result should be "blarh"
-	parts := strings.SplitN(address, ".", 2)
+	parts := strings.SplitN(host, ".", 2)
 	if parts[0] == "" {
-		return nil, fmt.Errorf("not quite sure what you want to dial: %s", address)
+		return nil, fmt.Errorf("router: not quite sure what you want to dial: %s", address)
 	}
 
 	r.RLock()
@@ -90,8 +95,8 @@ func (r *Router) DialContext(ctx context.Context, network, address string) (net.
 	r.RUnlock()
 
 	if !exists {
-		return nil, fmt.Errorf("i do not know anything like %s", parts[0]).(ErrNotFound)
+		return nil, fmt.Errorf("router: %s not found", parts[0]).(ErrNotFound)
 	}
 
-	return d.DialContext(ctx, network, address)
+	return d.DialContext(ctx, network, net.JoinHostPort(parts[0], port))
 }

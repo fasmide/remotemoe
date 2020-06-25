@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/fasmide/remotemoe/router"
+	"github.com/fasmide/remotemoe/services"
 	"github.com/fatih/color"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/terminal"
@@ -243,7 +244,7 @@ func (s *Session) handleCommand(c string, output io.Writer) {
 		}
 		fmt.Fprint(output, "\r\n\r\n")
 		fmt.Fprint(output, "Add forwards by using the -R ssh parameter.\r\ne.g. for http and https services:\r\n\r\n")
-		fmt.Fprintf(output, "\tssh %s -R80:localhost:80 -R443:localhost:443\r\n\r\n", "FIXME.eu.remote.moe")
+		fmt.Fprintf(output, "\tssh %s -R80:localhost:80 -R443:localhost:443\r\n\r\n", services.Hostname)
 	case "services":
 		bold := color.New(color.Bold)
 		ports := ""
@@ -264,11 +265,11 @@ func (s *Session) handleCommand(c string, output io.Writer) {
 
 		help := true
 		if _, exists := s.services[80]; exists {
-			fmt.Fprintf(output, "http://%s.eu.remote.moe/\r\n", s.secureConn.Permissions.Extensions["pubkey-ish"])
+			fmt.Fprintf(output, "http://%s.%s/\r\n", s.secureConn.Permissions.Extensions["pubkey-ish"], services.Hostname)
 			help = false
 		}
 		if _, exists := s.services[8080]; exists {
-			fmt.Fprintf(output, "http://%s.eu.remote.moe:8080/\r\n", s.secureConn.Permissions.Extensions["pubkey-ish"])
+			fmt.Fprintf(output, "http://%s.%s:8080/\r\n", s.secureConn.Permissions.Extensions["pubkey-ish"], services.Hostname)
 			help = false
 		}
 		if help {
@@ -281,7 +282,7 @@ func (s *Session) handleCommand(c string, output io.Writer) {
 
 		help = true
 		if _, exists := s.services[443]; exists {
-			fmt.Fprintf(output, "https://%s.eu.remote.moe\r\n", s.secureConn.Permissions.Extensions["pubkey-ish"])
+			fmt.Fprintf(output, "https://%s.%s\r\n", s.secureConn.Permissions.Extensions["pubkey-ish"], services.Hostname)
 			help = false
 		}
 		if help {
@@ -293,11 +294,11 @@ func (s *Session) handleCommand(c string, output io.Writer) {
 		fmt.Fprint(output, "\r\n")
 		help = true
 		if _, exists := s.services[22]; exists {
-			fmt.Fprintf(output, "ssh -J eu.remote.moe %s.eu.remote.moe\r\n", s.secureConn.Permissions.Extensions["pubkey-ish"])
+			fmt.Fprintf(output, "ssh -J %s %s\r\n", services.Hostname, s.secureConn.Permissions.Extensions["pubkey-ish"])
 			help = false
 		}
 		if _, exists := s.services[2222]; exists {
-			fmt.Fprintf(output, "ssh -J eu.remote.moe:2222 %s.eu.remote.moe\r\n", s.secureConn.Permissions.Extensions["pubkey-ish"])
+			fmt.Fprintf(output, "ssh -p2222 -J %s %s\r\n", services.Hostname, s.secureConn.Permissions.Extensions["pubkey-ish"])
 			help = false
 		}
 		if help {
@@ -319,16 +320,23 @@ func (s *Session) acceptForwardRequest(fr ssh.NewChannel) error {
 		return fmt.Errorf("unable to unmarshal forward information: %w", err)
 	}
 
+	// lookup "hostname" in the router, fetch remote and pass data
+	conn, err := s.router.DialContext(context.Background(), "tcp", forwardInfo.To())
+	if err != nil {
+		err = fmt.Errorf("cannot dial %s: %s", forwardInfo.To(), err)
+		fr.Reject(ssh.ConnectionFailed, fmt.Sprintf("cannot make connection: %s", err))
+		return err
+	}
+
 	// Accept channel from ssh client
-	logger.Printf("accepting forward to %s:%d", forwardInfo.Addr, forwardInfo.Rport)
-	_, requests, err := fr.Accept()
+	channel, requests, err := fr.Accept()
 	if err != nil {
 		return fmt.Errorf("could not accept forward channel: %w", err)
 	}
-
-	// lookup "hostname" in the router, fetch remote and pass data
-
 	go ssh.DiscardRequests(requests)
+
+	go io.Copy(channel, conn)
+	go io.Copy(conn, channel)
 
 	return nil
 }
