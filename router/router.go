@@ -75,6 +75,19 @@ func (r *Router) Find(n string) (Routable, bool) {
 	return d, ok
 }
 
+// Exists allows the acme/autocert to figure out if it should make certificate requests
+func (r *Router) Exists(_ context.Context, s string) error {
+	r.RLock()
+	_, exists := r.endpoints[s]
+	r.RUnlock()
+
+	if !exists {
+		return fmt.Errorf("%s does not exist", s)
+	}
+
+	return nil
+}
+
 // DialContext is used by stuff that what to dial something up
 func (r *Router) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
 	host, port, err := net.SplitHostPort(address)

@@ -1,7 +1,7 @@
 remotemoe - everything ssh plumbing
 
 Stuff that needs doing
-* HTTPS
+* service unit with StateDirectory for ACME
 * custom hostnames
     * includes the adventure of a database of some kind
 * readme

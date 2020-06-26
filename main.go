@@ -18,10 +18,11 @@ func main() {
 	proxy := &http.HttpProxy{Router: router}
 	proxy.Initialize()
 
-	server := http.NewServer()
+	server := http.NewServer(router)
 	server.Handler = proxy
 
 	services.Serve("HTTP", server)
+	services.ServeTLS("HTTPS", server)
 
 	sshConfig, err := ssh.DefaultConfig()
 	if err != nil {
