@@ -18,11 +18,15 @@ func main() {
 	proxy := &http.HttpProxy{Router: router}
 	proxy.Initialize()
 
-	server := http.NewServer(router)
+	server, err := http.NewServer(router)
+	if err != nil {
+		panic(err)
+	}
+
 	server.Handler = proxy
 
-	services.Serve("HTTP", server)
-	services.ServeTLS("HTTPS", server)
+	services.Serve("http", server)
+	services.ServeTLS("https", server)
 
 	sshConfig, err := ssh.DefaultConfig()
 	if err != nil {
@@ -31,7 +35,7 @@ func main() {
 
 	sshServer := &ssh.Server{Config: sshConfig, Router: router}
 
-	services.Serve("SSH", sshServer)
+	services.Serve("ssh", sshServer)
 
 	// we shall be dealing with shutting down in the future :)
 	select {}

@@ -13,9 +13,9 @@ var Hostname string
 
 func init() {
 	Services = map[string][]int{
-		"HTTP":  {80, 81, 3000, 8000, 8080},
-		"HTTPS": {443, 3443, 4443, 8443},
-		"SSH":   {22, 2222},
+		"http":  {80, 81, 3000, 8000, 8080},
+		"https": {443, 3443, 4443, 8443},
+		"ssh":   {22, 2222},
 	}
 
 	Ports = make(map[int]string)

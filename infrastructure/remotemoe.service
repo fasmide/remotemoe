@@ -1,0 +1,14 @@
+[Unit]
+Description=remotemoe
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/remotemoe
+Restart=always
+
+DynamicUser=yes
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+StateDirectory=acme
+
+[Install]
+WantedBy=multi-user.target
