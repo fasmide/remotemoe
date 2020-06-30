@@ -4,13 +4,15 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"strings"
 	"sync"
 )
 
 // Routable describes requirements to be routable
 type Routable interface {
 	DialContext(ctx context.Context, network, address string) (net.Conn, error)
+
+	// A routable should be able to identify it self
+	FQDN() string
 
 	// Replaced is used to indicate to a ssh session that it's routes
 	// have been replaced with another ssh session
@@ -38,7 +40,9 @@ type ErrNotFound error
 // the old route will have its .Replaced function called
 // and this method will return true - if this was a new
 // route, it will return false
-func (r *Router) Replace(n string, d Routable) bool {
+func (r *Router) Replace(d Routable) bool {
+	n := d.FQDN()
+
 	r.Lock()
 	oldRoute, exists := r.endpoints[n]
 	if exists {
@@ -52,7 +56,9 @@ func (r *Router) Replace(n string, d Routable) bool {
 }
 
 // Remove removes a route by name and Routable
-func (r *Router) Remove(n string, d Routable) {
+func (r *Router) Remove(d Routable) {
+	n := d.FQDN()
+
 	r.Lock()
 	defer r.Unlock()
 
@@ -82,7 +88,7 @@ func (r *Router) Exists(_ context.Context, s string) error {
 	r.RUnlock()
 
 	if !exists {
-		return fmt.Errorf("%s does not exist", s)
+		return fmt.Errorf("%s does not exist", s).(ErrNotFound)
 	}
 
 	return nil
@@ -90,26 +96,18 @@ func (r *Router) Exists(_ context.Context, s string) error {
 
 // DialContext is used by stuff that what to dial something up
 func (r *Router) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
-	host, port, err := net.SplitHostPort(address)
+	host, _, err := net.SplitHostPort(address)
 	if err != nil {
 		return nil, fmt.Errorf("router: could not split host from port: %w", err)
 	}
 
-	// we are looking for the lowest level subdomain, if given
-	// blarh.something.hostname:80
-	// the result should be "blarh"
-	parts := strings.SplitN(host, ".", 2)
-	if parts[0] == "" {
-		return nil, fmt.Errorf("router: not quite sure what you want to dial: %s", address)
-	}
-
 	r.RLock()
-	d, exists := r.endpoints[parts[0]]
+	d, exists := r.endpoints[host]
 	r.RUnlock()
 
 	if !exists {
-		return nil, fmt.Errorf("router: %s not found", parts[0]).(ErrNotFound)
+		return nil, fmt.Errorf("router: %s not found", host).(ErrNotFound)
 	}
 
-	return d.DialContext(ctx, network, net.JoinHostPort(parts[0], port))
+	return d.DialContext(ctx, network, address)
 }
