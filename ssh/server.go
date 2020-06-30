@@ -24,15 +24,12 @@ type Server struct {
 
 	// Router is used to expose routes
 	Router *router.Router
-
-	listener net.Listener
 }
 
 // Serve will accept ssh connections
 func (s *Server) Serve(l net.Listener) error {
-	s.listener = l
 	for {
-		nConn, err := s.listener.Accept()
+		nConn, err := l.Accept()
 		if err != nil {
 			return fmt.Errorf("failed to accept incoming connection: %w", err)
 		}
