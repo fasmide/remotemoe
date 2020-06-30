@@ -1,6 +1,9 @@
 package services
 
-import "os"
+import (
+	"os"
+	"strings"
+)
 
 // Services holds a map of servicename -> []ports
 var Services map[string][]int
@@ -29,6 +32,9 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+
+	// it is a good idea to keep every host lowercase
+	h = strings.ToLower(h)
 
 	Hostname = h
 }

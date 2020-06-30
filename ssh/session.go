@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -251,60 +253,101 @@ func (s *Session) handleCommand(c string, output io.Writer) {
 		fmt.Fprintf(output, "\tssh %s -R80:localhost:80 -R443:localhost:443\r\n\r\n", services.Hostname)
 	case "services":
 		bold := color.New(color.Bold)
-		ports := ""
-		for k := range s.services {
-			ports = fmt.Sprintf("%s %s", ports, bold.Sprintf("%d", k))
-		}
 
-		if ports == "" {
+		// Write a few sentences about currently forwarded ports...
+		if len(s.services) == 0 {
 			fmt.Fprintf(output, "You have %s forwarded ports, have a look in the ssh manual: %s.\r\n", bold.Sprint("zero"), bold.Sprint("man ssh"))
 			fmt.Fprintf(output, "You will be looking for the %s parameter.\r\n", bold.Sprint("-R"))
 		} else {
-			fmt.Fprintf(output, "Based on currently forwarded ports%s, your services will be available on:\r\n", ports)
+			keys := make([]int, 0, len(s.services))
+			for v := range s.services {
+				keys = append(keys, int(v))
+			}
+			sort.Sort(sort.IntSlice(keys))
+
+			fmt.Fprintf(output,
+				"Based on currently forwarded ports %s, your services will be available on:\r\n",
+				bold.Sprint(joinDigits(keys)),
+			)
 		}
 
+		// HTTP services
 		fmt.Fprint(output, "\r\n")
-		fmt.Fprintf(output, "%s (80, 81, 3000, 8000 and 8080)", bold.Sprint("HTTP"))
+		fmt.Fprintf(output, "%s (%s)", bold.Sprint("HTTP"), joinDigits(services.Services["http"]))
 		fmt.Fprint(output, "\r\n")
 
 		help := true
-		if _, exists := s.services[80]; exists {
-			fmt.Fprintf(output, "http://%s.%s/\r\n", s.secureConn.Permissions.Extensions["pubkey-ish"], services.Hostname)
+		for _, p := range services.Services["http"] {
+			if _, exists := s.services[uint32(p)]; !exists {
+				continue
+			}
+
+			// do not display further help about http ports
 			help = false
+
+			// port 80 being the default http port - omit the :port format
+			if p == 80 {
+				fmt.Fprintf(output, "http://%s/\r\n", s.FQDN())
+				continue
+			}
+
+			fmt.Fprintf(output, "http://%s:%d/\r\n", s.FQDN(), p)
 		}
-		if _, exists := s.services[8080]; exists {
-			fmt.Fprintf(output, "http://%s.%s:8080/\r\n", s.secureConn.Permissions.Extensions["pubkey-ish"], services.Hostname)
-			help = false
-		}
+
 		if help {
 			fmt.Fprintf(output, "No HTTP services found, add some by appending `-R80:localhost:80` when connecting.\r\n")
 		}
 
+		// HTTPS services
 		fmt.Fprint(output, "\r\n")
-		fmt.Fprintf(output, "%s (443, 3443, 4443 and 8443)", bold.Sprint("HTTPS"))
+		fmt.Fprintf(output, "%s (%s)", bold.Sprint("HTTPS"), joinDigits(services.Services["https"]))
 		fmt.Fprint(output, "\r\n")
 
 		help = true
-		if _, exists := s.services[443]; exists {
-			fmt.Fprintf(output, "https://%s.%s\r\n", s.secureConn.Permissions.Extensions["pubkey-ish"], services.Hostname)
+		for _, p := range services.Services["https"] {
+			if _, exists := s.services[uint32(p)]; !exists {
+				continue
+			}
+
+			// do not display further help about https ports
 			help = false
+
+			// port 443 being the default http port - omit the :port format
+			if p == 443 {
+				fmt.Fprintf(output, "https://%s/\r\n", s.FQDN())
+				continue
+			}
+
+			fmt.Fprintf(output, "https://%s:%d/\r\n", s.FQDN(), p)
 		}
+
 		if help {
 			fmt.Fprintf(output, "No HTTPS services found, add some by appending `-R443:localhost:443` when connecting.\r\n")
 		}
 
+		// SSH services
 		fmt.Fprint(output, "\r\n")
-		fmt.Fprintf(output, "%s (22 and 2222)", bold.Sprint("SSH"))
+		fmt.Fprintf(output, "%s (%s)", bold.Sprint("SSH"), joinDigits(services.Services["ssh"]))
 		fmt.Fprint(output, "\r\n")
+
 		help = true
-		if _, exists := s.services[22]; exists {
-			fmt.Fprintf(output, "ssh -J %s %s\r\n", services.Hostname, s.secureConn.Permissions.Extensions["pubkey-ish"])
+		for _, p := range services.Services["ssh"] {
+			if _, exists := s.services[uint32(p)]; !exists {
+				continue
+			}
+
+			// do not display further help about ssh ports
 			help = false
+
+			// port 22 being the default ssh port - omit the -p<port> format
+			if p == 22 {
+				fmt.Fprintf(output, "ssh -J %s %s\r\n", services.Hostname, s.FQDN())
+				continue
+			}
+
+			fmt.Fprintf(output, "ssh -p%d -J %s:%d %s\r\n", p, services.Hostname, p, s.FQDN())
 		}
-		if _, exists := s.services[2222]; exists {
-			fmt.Fprintf(output, "ssh -p2222 -J %s %s\r\n", services.Hostname, s.secureConn.Permissions.Extensions["pubkey-ish"])
-			help = false
-		}
+
 		if help {
 			fmt.Fprintf(output, "No SSH services found, add some by appending `-R22:localhost:22` when connecting.\r\n")
 		}
@@ -389,4 +432,20 @@ func (s *Session) Replaced() {
 	time.Sleep(500 * time.Millisecond)
 
 	s.secureConn.Close()
+}
+
+func joinDigits(ds []int) string {
+	b := &strings.Builder{}
+	for i, v := range ds {
+		if i == 0 {
+			fmt.Fprintf(b, "%d", v)
+			continue
+		}
+		if i == len(ds)-1 {
+			fmt.Fprintf(b, " and %d", v)
+			continue
+		}
+		fmt.Fprintf(b, ", %d", v)
+	}
+	return b.String()
 }
