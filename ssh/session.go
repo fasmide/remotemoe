@@ -424,6 +424,10 @@ func (s *Session) acceptForwardRequest(fr ssh.NewChannel) error {
 	if err != nil {
 		return fmt.Errorf("could not accept forward channel: %w", err)
 	}
+
+	// we should not timeout this client - its talking to another client
+	s.DisableTimeout()
+
 	go ssh.DiscardRequests(requests)
 
 	go io.Copy(channel, conn)
