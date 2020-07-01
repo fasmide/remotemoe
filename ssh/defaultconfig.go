@@ -5,6 +5,7 @@ import (
 	"encoding/base32"
 	"fmt"
 	"io/ioutil"
+	"os"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -88,7 +89,12 @@ func signer() (ssh.Signer, error) {
 	// if no private key shipped with this binary try to read
 	// id_rsa from the working directory
 	if RawPrivateKey == "" {
-		privateBytes, err := ioutil.ReadFile("id_rsa")
+		p := "id_rsa"
+		if os.Getenv("CONFIGURATION_DIRECTORY") != "" {
+			p = fmt.Sprintf("%s/%s", os.Getenv("CONFIGURATION_DIRECTORY"), p)
+		}
+
+		privateBytes, err := ioutil.ReadFile(p)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to load private key: %s", err)
 		}

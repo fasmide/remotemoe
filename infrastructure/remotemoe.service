@@ -8,7 +8,9 @@ Restart=always
 
 DynamicUser=yes
 AmbientCapabilities=CAP_NET_BIND_SERVICE
+
 StateDirectory=acme
+ConfigurationDirectory=remotemoe
 
 [Install]
 WantedBy=multi-user.target
