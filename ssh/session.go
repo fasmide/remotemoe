@@ -257,7 +257,7 @@ func (s *Session) handleCommand(c string, output io.Writer) {
 		fmt.Fprint(output, "  bashloop    using a simple bash loop\r\n")
 
 		fmt.Fprintf(output, "\r\n%s\r\n\r\n", bold.Sprint("Help topics:"))
-		fmt.Fprint(output, "  firstime    first time users of remotemoe and ssh tunneling\r\n")
+		fmt.Fprint(output, "  firsttime   first time users of remotemoe and ssh tunneling\r\n")
 		fmt.Fprint(output, "  portforward intro to ssh forward ports with `-R`\r\n")
 
 		fmt.Fprint(output, "\r\n")
