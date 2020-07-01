@@ -212,6 +212,8 @@ func (s *Session) acceptSession(session ssh.NewChannel) error {
 		}
 	}()
 
+	fmt.Fprintf(term, "New to remotemoe? - try 'firsttime' or 'help' and start exploring!\r\n")
+
 	go func() {
 		defer channel.Close()
 		for {
@@ -235,39 +237,81 @@ func (s *Session) acceptSession(session ssh.NewChannel) error {
 }
 
 func (s *Session) handleCommand(c string, output io.Writer) {
+	bold := color.New(color.Bold)
 
 	switch c {
 	case "":
 		// nothing
 	case "coffie":
 		fmt.Fprint(output, "Sure! - have some coffie\r\n")
-	case "ls":
-		portColor := color.New(color.Bold)
-		fmt.Fprint(output, "Active ports:")
-		for k := range s.services {
-			fmt.Fprint(output, " ")
-			portColor.Fprintf(output, "%d", k)
-		}
-		fmt.Fprint(output, "\r\n\r\n")
-		fmt.Fprint(output, "Add forwards by using the -R ssh parameter.\r\ne.g. for http and https services:\r\n\r\n")
-		fmt.Fprintf(output, "\tssh %s -R80:localhost:80 -R443:localhost:443\r\n\r\n", services.Hostname)
-	case "services":
+	case "help":
 		bold := color.New(color.Bold)
+		bold.Fprint(output, "Commands:")
+		fmt.Fprint(output, "\r\n\r\n")
+
+		fmt.Fprint(output, "  services    info about services currently active\r\n")
+
+		fmt.Fprintf(output, "\r\n%s\r\n\r\n", bold.Sprint("Ways of keeping an ssh connection open:"))
+		fmt.Fprint(output, "  autossh     using autossh\r\n")
+		fmt.Fprint(output, "  unitfile    using a systemd unit\r\n")
+		fmt.Fprint(output, "  bashloop    using a simple bash loop\r\n")
+
+		fmt.Fprintf(output, "\r\n%s\r\n\r\n", bold.Sprint("Help topics:"))
+		fmt.Fprint(output, "  firstime    first time users of remotemoe and ssh tunneling\r\n")
+		fmt.Fprint(output, "  portforward intro to ssh forward ports with `-R`\r\n")
+
+		fmt.Fprint(output, "\r\n")
+	case "autossh":
+		fmt.Fprintf(output,
+			"# autossh template based on ports %s\r\n",
+			bold.Sprint(joinDigits(s.serviceKeys())),
+		)
+		fmt.Fprint(output, "autossh -M 0 -f \\\r\n")
+		fmt.Fprint(output, "  -o \"ExitOnForwardFailure yes\" \\\r\n")
+		fmt.Fprint(output, "  -o \"ServerAliveInterval 30\" \\\r\n")
+		fmt.Fprint(output, "  -o \"ServerAliveCountMax 3\" \\\r\n")
+
+		for p := range s.services {
+			fmt.Fprintf(output, "  -R %d:localhost:%d \\\r\n", p, p)
+		}
+
+		fmt.Fprintf(output, "  %s -N\r\n", services.Hostname)
+		fmt.Fprint(output, "\r\n")
+		fmt.Fprint(output, "# for this to work, autossh needs access to the same keys and known_hosts as you had.\r\n")
+		fmt.Fprint(output, "# if debugging is needed, remove the `-f` parameter which will keep autossh in the foreground.\r\n")
+		fmt.Fprint(output, "\r\n")
+	case "unitfile":
+		fmt.Fprint(output, "FIXME: Here be unit file\r\n")
+	case "bashloop":
+		fmt.Fprint(output, "FIXME: Here be bash loop\r\n")
+	case "firsttime":
+		fmt.Fprintf(output, "%s\r\n", bold.Sprintf("remotemoe"))
+		fmt.Fprint(output, "remotemoe allows users to access services that are otherwise inaccessible from the internet.\r\n")
+		fmt.Fprint(output, "Just like ngrok or argo tunnels, a device or service connects to remotemoe which in turn muxes\r\n")
+		fmt.Fprint(output, "requests back from the internet. \r\n\r\n")
+
+		fmt.Fprintf(output, "%s\r\n", bold.Sprintf("Basic example:"))
+		fmt.Fprint(output, "Access the command line and a webservice of a remotely deployed Raspberry Pi:\r\n\r")
+
+		fmt.Fprint(output, firstTimeDiagram)
+
+		fmt.Fprint(output, "\r\n\r\n")
+		fmt.Fprint(output, "From the Raspberry pi, connect using `-R` parameters which tells ssh to forward ports.")
+		fmt.Fprint(output, "\r\n\r\n")
+		fmt.Fprintf(output, "  ssh -R80:localhost:80 -R22:localhost:22 %s\r\n\r\n", services.Hostname)
+		fmt.Fprint(output, "That's it, the Raspberry Pi's webservice and ssh daemon are now accessible from the internet\r\n")
+		fmt.Fprint(output, "\r\n")
+		fmt.Fprintf(output, "For information on how to access the services, have a look at the %s command\r\n", bold.Sprintf("services"))
+	case "services":
 
 		// Write a few sentences about currently forwarded ports...
 		if len(s.services) == 0 {
 			fmt.Fprintf(output, "You have %s forwarded ports, have a look in the ssh manual: %s.\r\n", bold.Sprint("zero"), bold.Sprint("man ssh"))
 			fmt.Fprintf(output, "You will be looking for the %s parameter.\r\n", bold.Sprint("-R"))
 		} else {
-			keys := make([]int, 0, len(s.services))
-			for v := range s.services {
-				keys = append(keys, int(v))
-			}
-			sort.Sort(sort.IntSlice(keys))
-
 			fmt.Fprintf(output,
-				"Based on currently forwarded ports %s, your services will be available on:\r\n",
-				bold.Sprint(joinDigits(keys)),
+				"Based on currently forwarded ports %s, your services will be available at:\r\n",
+				bold.Sprint(joinDigits(s.serviceKeys())),
 			)
 		}
 
@@ -432,6 +476,15 @@ func (s *Session) Replaced() {
 	time.Sleep(500 * time.Millisecond)
 
 	s.secureConn.Close()
+}
+
+func (s *Session) serviceKeys() []int {
+	keys := make([]int, 0, len(s.services))
+	for v := range s.services {
+		keys = append(keys, int(v))
+	}
+	sort.Sort(sort.IntSlice(keys))
+	return keys
 }
 
 func joinDigits(ds []int) string {
