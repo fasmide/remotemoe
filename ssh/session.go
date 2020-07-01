@@ -302,6 +302,15 @@ func (s *Session) handleCommand(c string, output io.Writer) {
 		fmt.Fprint(output, "That's it, the Raspberry Pi's webservice and ssh daemon are now accessible from the internet\r\n")
 		fmt.Fprint(output, "\r\n")
 		fmt.Fprintf(output, "For information on how to access the services, have a look at the %s command\r\n", bold.Sprintf("services"))
+	case "portforward":
+		fmt.Fprint(output, "First off, take a look in the ssh(1) manual and look for the `-R` parameter.\r\n\r\n")
+		fmt.Fprint(output, "remotemoe uses the ports and hostnames like this:\r\n")
+		fmt.Fprint(output, forwardDiagram)
+		fmt.Fprint(output, "\r\n")
+		fmt.Fprint(output, "Incoming port forwards are mapped directly to service mux'es, with the following rules:\r\n")
+		fmt.Fprintf(output, "Ports %s will be accessible with %s\r\n", bold.Sprint(joinDigits(services.Services["http"])), bold.Sprint("HTTP"))
+		fmt.Fprintf(output, "Ports %s will be accessible with %s\r\n", bold.Sprint(joinDigits(services.Services["https"])), bold.Sprint("HTTPs"))
+		fmt.Fprintf(output, "Ports %s will be accessible with %s\r\n", bold.Sprint(joinDigits(services.Services["ssh"])), bold.Sprint("ssh"))
 	case "services":
 
 		// Write a few sentences about currently forwarded ports...

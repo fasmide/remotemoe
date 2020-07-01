@@ -10,10 +10,11 @@ const firstTimeDiagram = `
  corporate firewall  |**|
 +--------------------|**|-----------------------+
                      |**|
-                     |**|
                      |**| http and ssh traffic are
                      |**| wrapped inside ssh tunnel
                      |**|
++--------------------|**|-----------------------+
+ internet            |**|
                      |**|
       remotemoe      |**|
      +---------------v--v-----------------+
@@ -31,4 +32,13 @@ const firstTimeDiagram = `
 |$ curl key.remotemoe  | |$ ssh -J remotemoe key|
 |                      | |                      |
 +----------------------+ +----------------------+
+`
+
+const forwardDiagram = `
+          +------------------------> remotemoe ignores bind_address
+          |        +---------------> specifies what kind of service is being forwarded
+          |        |    +----------> destination host
+          |        |    |     +----> destination port
+          +        +    +     +
+-R [bind_address:]port:host:hostport
 `
