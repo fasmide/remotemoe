@@ -65,8 +65,9 @@ func (s *Session) Handle() {
 	// take over existing routes
 	replaced := s.router.Replace(s)
 	if replaced {
-		warning := color.New(color.BgYellow, color.FgBlack, color.Bold).Sprint("warn")
-		s.msgs <- fmt.Sprintf("%s: this session replaced another session with the same publickey", warning)
+		warning := color.New(color.BgYellow, color.FgBlack, color.Bold)
+		warning.EnableColor()
+		s.msgs <- fmt.Sprintf("%s: this session replaced another session with the same publickey", warning.Sprint("warn"))
 	}
 
 	// The incoming Request channel must be serviced.
