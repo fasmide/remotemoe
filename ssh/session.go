@@ -238,6 +238,7 @@ func (s *Session) acceptSession(session ssh.NewChannel) error {
 
 func (s *Session) handleCommand(c string, output io.Writer) {
 	bold := color.New(color.Bold)
+	bold.EnableColor()
 
 	switch c {
 	case "":
@@ -245,7 +246,6 @@ func (s *Session) handleCommand(c string, output io.Writer) {
 	case "coffie":
 		fmt.Fprint(output, "Sure! - have some coffie\r\n")
 	case "help":
-		bold := color.New(color.Bold)
 		bold.Fprint(output, "Commands:")
 		fmt.Fprint(output, "\r\n\r\n")
 
@@ -482,8 +482,10 @@ func (s *Session) DialContext(ctx context.Context, network, address string) (net
 
 // Replaced is called when another ssh session is replacing this current one
 func (s *Session) Replaced() {
-	warning := color.New(color.BgYellow, color.FgBlack, color.Bold).Sprint("warn")
-	s.msgs <- fmt.Sprintf("%s: this session will be closed, another session just opened with the same publickey, bye!", warning)
+	warning := color.New(color.BgYellow, color.FgBlack, color.Bold)
+	warning.EnableColor()
+
+	s.msgs <- fmt.Sprintf("%s: this session will be closed, another session just opened with the same publickey, bye!", warning.Sprint("warn"))
 
 	// FIXME: figure out a proper way of flushing msgs to the end user
 	time.Sleep(500 * time.Millisecond)
