@@ -287,7 +287,7 @@ func (s *Session) handleCommand(c string, output io.Writer) {
 	case "firsttime":
 		fmt.Fprintf(output, "%s\r\n", bold.Sprintf("remotemoe"))
 		fmt.Fprint(output, "remotemoe allows users to access services that are otherwise inaccessible from the internet.\r\n")
-		fmt.Fprint(output, "Just like ngrok or argo tunnels, a device or service connects to remotemoe which in turn muxes\r\n")
+		fmt.Fprint(output, "Just like ngrok or argo tunnels, a device or service connects to remotemoe which in turn muxes ")
 		fmt.Fprint(output, "requests back from the internet. \r\n\r\n")
 
 		fmt.Fprintf(output, "%s\r\n", bold.Sprintf("Basic example:"))
