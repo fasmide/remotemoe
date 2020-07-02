@@ -244,6 +244,12 @@ func (s *Session) handleCommand(c string, output io.Writer) {
 	switch c {
 	case "":
 		// nothing
+	case "exit":
+		fmt.Fprint(output, "bye!\r\n")
+		s.secureConn.Close()
+	case "quit":
+		fmt.Fprint(output, "bye!\r\n")
+		s.secureConn.Close()
 	case "coffie":
 		fmt.Fprint(output, "Sure! - have some coffie\r\n")
 	case "help":
