@@ -18,6 +18,7 @@ Stuff that needs doing
     * accepts commands both when a session is active and when a client tries to execute a command directly
     * it should be possible to indicate which names you require in an idempotent way
 * proper ssh exit messages
+* users with active forwards should be presented with basically the `services` command
 
 Cool things that should not be done yet
 * in the terminal session, have a "debugon" command which provides the user with relevant info about connections being made, http requests etc

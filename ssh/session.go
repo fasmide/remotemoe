@@ -247,7 +247,7 @@ func (s *Session) handleCommand(c string, output io.Writer) {
 	case "coffie":
 		fmt.Fprint(output, "Sure! - have some coffie\r\n")
 	case "help":
-		bold.Fprint(output, "Commands:")
+		fmt.Fprint(output, bold.Sprint("Commands:"))
 		fmt.Fprint(output, "\r\n\r\n")
 
 		fmt.Fprint(output, "  services    info about services currently active\r\n")
