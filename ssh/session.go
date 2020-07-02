@@ -83,6 +83,7 @@ func (s *Session) Handle() {
 	s.DisableTimeout()
 }
 
+// FQDN returns the fully qualified hostname for this session
 func (s *Session) FQDN() string {
 	return fmt.Sprintf("%s.%s", s.secureConn.Permissions.Extensions["pubkey-ish"], services.Hostname)
 }
@@ -239,6 +240,8 @@ func (s *Session) acceptSession(session ssh.NewChannel) error {
 
 func (s *Session) handleCommand(c string, output io.Writer) {
 	bold := color.New(color.Bold)
+
+	// forces colors on
 	bold.EnableColor()
 
 	switch c {
@@ -288,7 +291,34 @@ func (s *Session) handleCommand(c string, output io.Writer) {
 		fmt.Fprint(output, "# if debugging is needed, remove the `-f` parameter which will keep autossh in the foreground.\r\n")
 		fmt.Fprint(output, "\r\n")
 	case "unitfile":
-		fmt.Fprint(output, "FIXME: Here be unit file\r\n")
+		fmt.Fprint(output, "Keeping an active tunnel open using systemd as a user service.\r\n")
+		fmt.Fprint(output, "First off, ensure you have lingering turn on, and the directories setup correctly.\r\n")
+		fmt.Fprint(output, "\r\n")
+		fmt.Fprint(output, "  $ mkdir -p ~/.config/systemd/user/\r\n")
+		fmt.Fprint(output, "  $ sudo loginctl enable-linger $USER\r\n")
+		fmt.Fprint(output, "\r\n")
+		fmt.Fprintf(output, "Put this file, into %s\r\n", bold.Sprintf("~/.config/systemd/user/remotemoe.service"))
+		fmt.Fprint(output, "[Unit]\r\nDescription=remotemoe tunnel\r\nAfter=network.target\r\n\r\n[Service]\r\nRestart=always\r\n")
+		fmt.Fprint(output, "ExecStart=ssh \\\r\n")
+		fmt.Fprint(output, "  -o \"ExitOnForwardFailure yes\" \\\r\n")
+		fmt.Fprint(output, "  -o \"ServerAliveInterval 30\"  \\\r\n")
+		fmt.Fprint(output, "  -o \"ServerAliveCountMax 3\" \\\r\n")
+
+		for p := range s.services {
+			fmt.Fprintf(output, "  -R %d:localhost:%d \\\r\n", p, p)
+		}
+
+		fmt.Fprintf(output, "  %s -N\r\n", services.Hostname)
+		fmt.Fprint(output, "\r\n")
+		fmt.Fprint(output, "[Install]\r\nWantedBy=multi-user.target\r\n")
+		fmt.Fprint(output, "\r\n")
+		fmt.Fprint(output, "You should now be able to start the service:\r\n")
+		fmt.Fprint(output, " $ systemctl --user start remotemoe.service\r\n")
+		fmt.Fprint(output, "\r\n")
+		fmt.Fprint(output, "You can also enable the service at boot time:\r\n")
+		fmt.Fprint(output, " $ systemctl --user enable remotemoe.service\r\n")
+		fmt.Fprint(output, "\r\n")
+
 	case "bashloop":
 		fmt.Fprint(output, "FIXME: Here be bash loop\r\n")
 	case "firsttime":
