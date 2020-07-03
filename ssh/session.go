@@ -54,7 +54,7 @@ func (s *Session) Handle() {
 	// we are doing a buffered channel, as a slutty way of not blocking `-N` connections
 	// as no terminal is available, we will just buffer them and
 	// get on with our lives ... time will tell if this is a good idea :)
-	s.msgs = make(chan string, 15)
+	s.msgs = make(chan string, 50)
 
 	// initialize services map
 	s.services = make(map[uint32]struct{})
@@ -173,6 +173,8 @@ func (s *Session) handleRequests() {
 			// disable idle timeout now that the connection is actually usefull
 			s.DisableTimeout()
 
+			s.informForward(forwardInfo.Rport)
+
 			req.Reply(true, nil)
 			continue
 		}
@@ -182,6 +184,41 @@ func (s *Session) handleRequests() {
 
 	}
 
+}
+
+// informForward informs the user that the forward request have been accepted and where its available
+func (s *Session) informForward(p uint32) {
+	bold := color.New(color.Bold)
+
+	// first things first - do we know what to do with this portnumber?
+	service, exists := services.Ports[int(p)]
+	if !exists {
+		s.msgs <- fmt.Sprintf("%s (%d)\nthis port is unsupported, run `%s` command for more info...\n", bold.Sprintf("unknown"), p, bold.Sprintf("forwards"))
+		return
+	}
+
+	switch service {
+	case "http": // http services
+		if p == 80 {
+			s.msgs <- fmt.Sprintf("%s (%d)\nhttp://%s/\n", bold.Sprintf("http"), p, s.FQDN())
+		} else {
+			s.msgs <- fmt.Sprintf("%s (%d)\nhttp://%s:%d/\n", bold.Sprintf("http"), p, s.FQDN(), p)
+		}
+	case "https": // https services
+		if p == 443 {
+			s.msgs <- fmt.Sprintf("%s (%d)\nhttps://%s/\n", bold.Sprintf("https"), p, s.FQDN())
+		} else {
+			s.msgs <- fmt.Sprintf("%s (%d)\nhttps://%s:%d/\n", bold.Sprintf("https"), p, s.FQDN(), p)
+		}
+	case "ssh": // ssh services
+		if p == 22 {
+			s.msgs <- fmt.Sprintf("%s (%d)\nssh -J %s %s\n", bold.Sprintf("ssh"), p, services.Hostname, s.FQDN())
+		} else {
+			s.msgs <- fmt.Sprintf("%s (%d)\nssh -p%d -J %s:%d %s\n", bold.Sprintf("ssh"), p, p, services.Hostname, p, s.FQDN())
+		}
+	default:
+		s.msgs <- fmt.Sprintf("erhm port %d - a certain developer must be ashamed of it self :)", p)
+	}
 }
 
 // acceptSession starts a new user terminal for the end user
@@ -214,7 +251,7 @@ func (s *Session) acceptSession(session ssh.NewChannel) error {
 		}
 	}()
 
-	fmt.Fprintf(term, "New to remotemoe? - try 'firsttime' or 'help' and start exploring!\r\n")
+	fmt.Fprintf(term, "New to remotemoe? - try 'firsttime' or 'help' and start exploring!\r\n\r\n")
 
 	go func() {
 		defer channel.Close()
@@ -268,7 +305,7 @@ func (s *Session) handleCommand(c string, output io.Writer) {
 
 		fmt.Fprintf(output, "\r\n%s\r\n\r\n", bold.Sprint("Help topics:"))
 		fmt.Fprint(output, "  firsttime   first time users of remotemoe and ssh tunneling\r\n")
-		fmt.Fprint(output, "  portforward intro to ssh forward ports with `-R`\r\n")
+		fmt.Fprint(output, "  forwards    intro to ssh forward ports with `-R`\r\n")
 
 		fmt.Fprint(output, "\r\n")
 	case "autossh":
@@ -338,7 +375,7 @@ func (s *Session) handleCommand(c string, output io.Writer) {
 		fmt.Fprint(output, "That's it, the Raspberry Pi's webservice and ssh daemon are now accessible from the internet\r\n")
 		fmt.Fprint(output, "\r\n")
 		fmt.Fprintf(output, "For information on how to access the services, have a look at the %s command\r\n", bold.Sprintf("services"))
-	case "portforward":
+	case "forwards":
 		fmt.Fprint(output, "First off, take a look in the ssh(1) manual and look for the `-R` parameter.\r\n\r\n")
 		fmt.Fprint(output, "remotemoe uses the ports and hostnames like this:\r\n")
 		fmt.Fprint(output, forwardDiagram)
