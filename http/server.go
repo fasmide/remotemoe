@@ -13,7 +13,7 @@ import (
 )
 
 // NewServer returns a HTTP(S) capable server
-func NewServer(r *router.Router) (*http.Server, error) {
+func NewServer() (*http.Server, error) {
 	cache, err := acmeCache()
 	if err != nil {
 		return nil, fmt.Errorf("unable to get acme cache: %w", err)
@@ -22,7 +22,7 @@ func NewServer(r *router.Router) (*http.Server, error) {
 	m := &autocert.Manager{
 		Cache:      cache,
 		Prompt:     autocert.AcceptTOS,
-		HostPolicy: r.Exists,
+		HostPolicy: router.Exists,
 	}
 
 	return &http.Server{

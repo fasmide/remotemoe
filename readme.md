@@ -4,7 +4,7 @@
 |   _|  -__|        |  _  ||   _|  -__|        |  _  |  -__|
 |__| |_____|__|__|__|_____||____|_____|__|__|__|_____|_____|
 
-remotemoe - everything ssh plumbing
+remotemoe - ssh plumber
 ```
 
 

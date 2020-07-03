@@ -43,9 +43,6 @@ type Session struct {
 	// these are just indicators that the remote sent a tcpip-forward request sometime
 	services map[uint32]struct{}
 
-	// router specifies where we publish the session
-	router *router.Router
-
 	// registeOnce is used to register with the router when ever a
 	// forward is received ... but only once :)
 	registerOnce sync.Once
@@ -72,8 +69,8 @@ func (s *Session) Handle() {
 	// block here until the end of time
 	s.handleChannels()
 
-	// s.router.Remove will remove this session only if it is the currently active one
-	s.router.Remove(s)
+	// router.Remove will remove this session only if it is the currently active one
+	router.Remove(s)
 
 	// No reason to keep the timer active
 	s.DisableTimeout()
@@ -172,7 +169,7 @@ func (s *Session) handleRequests() {
 			// register with the router - only do this once
 			s.registerOnce.Do(func() {
 				// take over existing routes
-				replaced := s.router.Replace(s)
+				replaced := router.Replace(s)
 				if replaced {
 					warning := color.New(color.BgYellow, color.FgBlack, color.Bold)
 					warning.EnableColor()
@@ -502,7 +499,7 @@ func (s *Session) acceptForwardRequest(fr ssh.NewChannel) error {
 	}
 
 	// lookup "hostname" in the router, fetch remote and pass data
-	conn, err := s.router.DialContext(context.Background(), "tcp", forwardInfo.To())
+	conn, err := router.DialContext(context.Background(), "tcp", forwardInfo.To())
 	if err != nil {
 		err = fmt.Errorf("cannot dial %s: %s", forwardInfo.To(), err)
 		fr.Reject(ssh.ConnectionFailed, fmt.Sprintf("cannot make connection: %s", err))

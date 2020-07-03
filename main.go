@@ -13,12 +13,12 @@ import (
 func main() {
 	flag.Parse()
 
-	router := router.New()
+	router.Initialize()
 
-	proxy := &http.HttpProxy{Router: router}
+	proxy := &http.HttpProxy{}
 	proxy.Initialize()
 
-	server, err := http.NewServer(router)
+	server, err := http.NewServer()
 	if err != nil {
 		panic(err)
 	}
@@ -33,7 +33,7 @@ func main() {
 		log.Fatalf("cannot get default ssh config: %s", err)
 	}
 
-	sshServer := &ssh.Server{Config: sshConfig, Router: router}
+	sshServer := &ssh.Server{Config: sshConfig}
 
 	services.Serve("ssh", sshServer)
 
