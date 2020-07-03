@@ -45,6 +45,10 @@ type Session struct {
 
 	// router specifies where we publish the session
 	router *router.Router
+
+	// registeOnce is used to register with the router when ever a
+	// forward is received ... but only once :)
+	registerOnce sync.Once
 }
 
 // Handle takes care of a Sessions lifetime
@@ -61,14 +65,6 @@ func (s *Session) Handle() {
 
 	// if a connection havnt done anything usefull within a minute, throw them away
 	s.idleTimeout = time.AfterFunc(IdleTimeout, s.Timeout)
-
-	// take over existing routes
-	replaced := s.router.Replace(s)
-	if replaced {
-		warning := color.New(color.BgYellow, color.FgBlack, color.Bold)
-		warning.EnableColor()
-		s.msgs <- fmt.Sprintf("%s: this session replaced another session with the same publickey", warning.Sprint("warn"))
-	}
 
 	// The incoming Request channel must be serviced.
 	go s.handleRequests()
@@ -172,6 +168,17 @@ func (s *Session) handleRequests() {
 
 			// disable idle timeout now that the connection is actually usefull
 			s.DisableTimeout()
+
+			// register with the router - only do this once
+			s.registerOnce.Do(func() {
+				// take over existing routes
+				replaced := s.router.Replace(s)
+				if replaced {
+					warning := color.New(color.BgYellow, color.FgBlack, color.Bold)
+					warning.EnableColor()
+					s.msgs <- fmt.Sprintf("%s: this session replaced another session with the same publickey\n", warning.Sprint("warn"))
+				}
+			})
 
 			s.informForward(forwardInfo.Rport)
 
