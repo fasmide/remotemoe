@@ -189,6 +189,7 @@ func (s *Session) handleRequests() {
 // informForward informs the user that the forward request have been accepted and where its available
 func (s *Session) informForward(p uint32) {
 	bold := color.New(color.Bold)
+	bold.EnableColor()
 
 	// first things first - do we know what to do with this portnumber?
 	service, exists := services.Ports[int(p)]
