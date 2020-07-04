@@ -13,7 +13,10 @@ import (
 func main() {
 	flag.Parse()
 
-	router.Initialize()
+	err := router.Initialize()
+	if err != nil {
+		log.Fatalf("could not initialize router: %s", err)
+	}
 
 	proxy := &http.HttpProxy{}
 	proxy.Initialize()

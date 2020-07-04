@@ -286,9 +286,12 @@ func (s *Session) handleCommand(c string, output io.Writer) {
 	// forces colors on
 	bold.EnableColor()
 
-	switch c {
-	case "":
-		// nothing
+	argv := strings.Fields(c)
+	if len(argv) == 0 {
+		return
+	}
+
+	switch argv[0] {
 	case "exit":
 		fmt.Fprint(output, "bye!\r\n")
 		s.secureConn.Close()
@@ -302,17 +305,43 @@ func (s *Session) handleCommand(c string, output io.Writer) {
 		fmt.Fprint(output, "\r\n\r\n")
 
 		fmt.Fprint(output, "  services    info about services currently active\r\n")
+		fmt.Fprint(output, "  add         add hostname(s) to your endpoint\r\n")
 
 		fmt.Fprintf(output, "\r\n%s\r\n\r\n", bold.Sprint("Ways of keeping an ssh connection open:"))
 		fmt.Fprint(output, "  autossh     using autossh\r\n")
 		fmt.Fprint(output, "  unitfile    using a systemd unit\r\n")
 		fmt.Fprint(output, "  bashloop    using a simple bash loop\r\n")
 
-		fmt.Fprintf(output, "\r\n%s\r\n\r\n", bold.Sprint("Help topics:"))
+		fmt.Fprintf(output, "\r\n%s\r\n\r\n", bold.Sprint("Other topics:"))
 		fmt.Fprint(output, "  firsttime   first time users of remotemoe and ssh tunneling\r\n")
 		fmt.Fprint(output, "  forwards    intro to ssh forward ports with `-R`\r\n")
 
 		fmt.Fprint(output, "\r\n")
+	case "add":
+		if len(argv) == 1 {
+			fmt.Fprintf(output,
+				"%s:\r\n\r\n  add some-wanted-hostname.%s [more-hostnames.%s] [my.very.own.domain.com] ... \r\n\r\n",
+				bold.Sprintf("add usage"),
+				services.Hostname,
+				services.Hostname,
+			)
+			fmt.Fprint(output, "Add as many hostnames as needed. You can bring your own domains by setting up DNS records appropriately.\r\n")
+			return
+		}
+
+		for _, n := range argv[1:] {
+			namedRoute := router.NewName(n, s)
+			err := router.Add(namedRoute)
+			if err != nil {
+				fmt.Fprintf(output, "%s could not be added: %s\r\n", bold.Sprint(n), err)
+				continue
+			}
+			fmt.Fprintf(output, "%s was added.\r\n", bold.Sprint(n))
+		}
+
+		fmt.Fprint(output, "\r\n")
+		fmt.Fprintf(output, "Check out %s command for all active hostnames\r\n", bold.Sprint("services"))
+
 	case "autossh":
 		fmt.Fprintf(output,
 			"# autossh template based on ports %s\r\n",
@@ -484,7 +513,7 @@ func (s *Session) handleCommand(c string, output io.Writer) {
 		}
 
 	default:
-		fmt.Fprintf(output, "%s: command not found\r\n", c)
+		fmt.Fprintf(output, "%s: command not found\r\n", argv[0])
 	}
 }
 

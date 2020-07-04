@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net"
 	"sync"
+
+	"github.com/asdine/storm/v3"
 )
 
 // Routable describes requirements to be routable
@@ -22,12 +24,73 @@ type Routable interface {
 var lock sync.RWMutex
 var endpoints map[string]Routable
 
+var db *storm.DB
+
 // ErrNotFound errors are returned when searching for something
 // that does not exist
 type ErrNotFound error
 
-func Initialize() {
+// Initialize loads previously stored namedroutes and sets everything up
+func Initialize() error {
 	endpoints = make(map[string]Routable)
+
+	// open database
+	var err error
+	db, err = storm.Open("router.db")
+	if err != nil {
+		return fmt.Errorf("router: unable to open database: %s", err)
+	}
+
+	// fetch previously stored named routes
+	var namedRoutes []*NamedRoute
+	err = db.All(&namedRoutes)
+	if err != nil {
+		return fmt.Errorf("router: database error: %s", err)
+	}
+
+	// restore all named routes
+	for _, namedRoute := range namedRoutes {
+		endpoints[namedRoute.FQDN()] = namedRoute
+	}
+
+	return nil
+}
+
+// Add is used to add a named route
+func Add(n *NamedRoute) error {
+	lock.Lock()
+	// we are not using defer Unlock() in here because we would like
+	// to do the database io outside the lock
+
+	existing, exists := endpoints[n.FQDN()]
+	if exists {
+		lock.Unlock()
+
+		// if the found route is a *NamedRoute that happens to belong
+		// to the same owner as the provided one, return without an error
+		if existingNamedRoute, ok := existing.(*NamedRoute); ok {
+			if existingNamedRoute.Owner == n.Owner {
+				return nil
+			}
+		}
+
+		return fmt.Errorf("router: %s is already active", n.FQDN())
+	}
+
+	endpoints[n.FQDN()] = n
+	lock.Unlock()
+
+	err := db.Save(n)
+	if err != nil {
+		// well now we are in the shitty situration that we have to aquire the lock again
+		lock.Lock()
+		delete(endpoints, n.FQDN())
+		lock.Unlock()
+
+		return fmt.Errorf("router: cannot add %s: %w", n.Name, err)
+	}
+
+	return nil
 }
 
 // Replace replaces a route, if another route was found

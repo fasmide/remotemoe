@@ -19,6 +19,8 @@ Stuff that needs doing
 * proper ssh exit messages
 * tab complete
 * maybe dont allow acme to create certificate requests for hosts that do not provide https
+* ssh.Terminal provides a TabCompletionCallback which we should use
+
 
 Cool things that should not be done yet
 * in the terminal session, have a "debugon" command which provides the user with relevant info about connections being made, http requests etc
@@ -28,13 +30,14 @@ Cool things that should not be done yet
 Items that need more research:
 
 * current namedRoute design allows users to steal each others raw pubkey fqdn's 
-    * maybe dont allow exactly the length of base32.hostname
+    * maybe dont allow exactly the length of pubkey.hostname
         * i like this one because they are soo long that no one will acturlly create such a long named route - unless trying todo what we dont want them to
             * and if they do, they are just going to have to add or remove another char...
     * maybe introduce a pattern where the router ensures no-one makes names on a special subdomain
         * base32.k.remote.moe
         * kind of complex
     * maybe dont care: we will check if a route exists when users setup names and we could ensure that router.Replace removes any existing routes .. which is sorta already does but that really only had effect on other connections with the same pubkey
+    * maybe check to see if the name that is requested is a keyname we have seen before - it would become quite a long list though
 
 * figure out if ssh.Session.DialContext needs to deal with the provided context
 
