@@ -11,6 +11,10 @@ remotemoe - ssh plumber
 Stuff that needs doing
 * custom hostnames
     * includes the adventure of a database of some kind
+    * timeouts
+    * delete 
+    * garbage collection
+    * Maybe the timeout should be access based? ... gold would properly be both access'es and active connections
 * readme
 * rewrite of a sessions terminal so that it:
     * isnt just a big ugly switch

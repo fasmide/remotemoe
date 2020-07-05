@@ -3,6 +3,7 @@ package router
 import (
 	"context"
 	"fmt"
+	"log"
 	"net"
 	"sync"
 
@@ -87,10 +88,24 @@ func Add(n *NamedRoute) error {
 		delete(endpoints, n.FQDN())
 		lock.Unlock()
 
-		return fmt.Errorf("router: cannot add %s: %w", n.Name, err)
+		log.Printf("router: cannot add %s: %s", n.Name, err)
+		return fmt.Errorf("broken database")
 	}
 
 	return nil
+}
+
+// Names returns a list of NamedRoutes
+func Names(r Routable) ([]NamedRoute, error) {
+	var result []NamedRoute
+	err := db.Find("Owner", r.FQDN(), &result)
+	if err != nil {
+		err = fmt.Errorf("router: unable to fetch names: %w", err)
+		log.Printf(err.Error())
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // Replace replaces a route, if another route was found

@@ -419,6 +419,12 @@ func (s *Session) handleCommand(c string, output io.Writer) {
 		fmt.Fprintf(output, "Ports %s will be accessible with %s\r\n", bold.Sprint(joinDigits(services.Services["https"])), bold.Sprint("HTTPs"))
 		fmt.Fprintf(output, "Ports %s will be accessible with %s\r\n", bold.Sprint(joinDigits(services.Services["ssh"])), bold.Sprint("ssh"))
 	case "services":
+		namedRoutes, err := router.Names(s)
+		if err != nil {
+			fmt.Fprint(output, "unable to lookup your custom names, try again later...\r\n")
+			// we should let the command continue but with an empty slice
+			namedRoutes = make([]router.NamedRoute, 0, 0)
+		}
 
 		// Write a few sentences about currently forwarded ports...
 		if len(s.services) == 0 {
@@ -448,10 +454,16 @@ func (s *Session) handleCommand(c string, output io.Writer) {
 			// port 80 being the default http port - omit the :port format
 			if p == 80 {
 				fmt.Fprintf(output, "http://%s/\r\n", s.FQDN())
+				for _, nr := range namedRoutes {
+					fmt.Fprintf(output, "http://%s/\r\n", nr.FQDN())
+				}
 				continue
 			}
 
 			fmt.Fprintf(output, "http://%s:%d/\r\n", s.FQDN(), p)
+			for _, nr := range namedRoutes {
+				fmt.Fprintf(output, "http://%s:%d/\r\n", nr.FQDN(), p)
+			}
 		}
 
 		if help {
@@ -475,10 +487,16 @@ func (s *Session) handleCommand(c string, output io.Writer) {
 			// port 443 being the default http port - omit the :port format
 			if p == 443 {
 				fmt.Fprintf(output, "https://%s/\r\n", s.FQDN())
+				for _, nr := range namedRoutes {
+					fmt.Fprintf(output, "https://%s/\r\n", nr.FQDN())
+				}
 				continue
 			}
 
 			fmt.Fprintf(output, "https://%s:%d/\r\n", s.FQDN(), p)
+			for _, nr := range namedRoutes {
+				fmt.Fprintf(output, "https://%s:%d/\r\n", nr.FQDN(), p)
+			}
 		}
 
 		if help {
@@ -502,10 +520,17 @@ func (s *Session) handleCommand(c string, output io.Writer) {
 			// port 22 being the default ssh port - omit the -p<port> format
 			if p == 22 {
 				fmt.Fprintf(output, "ssh -J %s %s\r\n", services.Hostname, s.FQDN())
+				for _, nr := range namedRoutes {
+					fmt.Fprintf(output, "ssh -J %s %s\r\n", services.Hostname, nr.FQDN())
+				}
 				continue
 			}
 
 			fmt.Fprintf(output, "ssh -p%d -J %s:%d %s\r\n", p, services.Hostname, p, s.FQDN())
+			for _, nr := range namedRoutes {
+				fmt.Fprintf(output, "ssh -p%d -J %s:%d %s\r\n", p, services.Hostname, p, nr.FQDN())
+
+			}
 		}
 
 		if help {
