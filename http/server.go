@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/fasmide/remotemoe/router"
 	"golang.org/x/crypto/acme/autocert"
@@ -41,9 +42,16 @@ func withLocalAddr(ctx context.Context, c net.Conn) context.Context {
 // acmeCache tries to find a systemd created state directory
 // and oterwise defaults to $(pwd)/acme-secrets
 func acmeCache() (autocert.Cache, error) {
-	dir := os.Getenv("STATE_DIRECTORY")
-	if dir != "" {
-		return autocert.DirCache(dir), nil
+	dirs := strings.FieldsFunc(
+		os.Getenv("STATE_DIRECTORY"),
+		func(r rune) bool {
+			return r == ':'
+		},
+	)
+
+	// dirs[0] is the acme directory
+	if len(dirs) > 0 {
+		return autocert.DirCache(dirs[0]), nil
 	}
 
 	err := os.Mkdir("acme-secrets", 0600)

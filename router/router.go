@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
+	"path"
+	"strings"
 	"sync"
 
 	"github.com/asdine/storm/v3"
@@ -38,7 +41,7 @@ func Initialize() error {
 
 	// open database
 	var err error
-	db, err = storm.Open("router.db")
+	db, err = storm.Open(databasePath())
 	if err != nil {
 		return fmt.Errorf("router: unable to open database: %s", err)
 	}
@@ -55,7 +58,25 @@ func Initialize() error {
 		endpoints[namedRoute.FQDN()] = namedRoute
 	}
 
+	log.Printf("router: restored %d routes, using %s", len(namedRoutes), databasePath())
+
 	return nil
+}
+
+func databasePath() string {
+	dirs := strings.FieldsFunc(
+		os.Getenv("STATE_DIRECTORY"),
+		func(r rune) bool {
+			return r == ':'
+		},
+	)
+
+	// dirs[0] is the acme directory
+	if len(dirs) > 1 {
+		return path.Join(dirs[1], "router.db")
+	}
+
+	return "router.db"
 }
 
 // Add is used to add a named route
@@ -79,7 +100,7 @@ func Add(n *NamedRoute) error {
 	err := db.Save(n)
 	if err != nil {
 		log.Printf("router: cannot add %s: %s", n.Name, err)
-		return fmt.Errorf("%s cannot be added, try again later")
+		return errors.New("could not store name, try again later")
 	}
 
 	endpoints[n.FQDN()] = n
