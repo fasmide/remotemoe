@@ -305,7 +305,9 @@ func (s *Session) handleCommand(c string, output io.Writer) {
 		fmt.Fprint(output, "\r\n\r\n")
 
 		fmt.Fprint(output, "  services    info about services currently active\r\n")
-		fmt.Fprint(output, "  add         add hostname(s) to your endpoint\r\n")
+		fmt.Fprint(output, "  add         add hostname(s) to your services\r\n")
+		fmt.Fprint(output, "  remove      remove hostname(s) from your services\r\n")
+		fmt.Fprint(output, "  remove all  removes all hostnames from your services\r\n")
 
 		fmt.Fprintf(output, "\r\n%s\r\n\r\n", bold.Sprint("Ways of keeping an ssh connection open:"))
 		fmt.Fprint(output, "  autossh     using autossh\r\n")
@@ -317,6 +319,45 @@ func (s *Session) handleCommand(c string, output io.Writer) {
 		fmt.Fprint(output, "  forwards    intro to ssh forward ports with `-R`\r\n")
 
 		fmt.Fprint(output, "\r\n")
+	case "remove":
+		if len(argv) == 1 {
+			fmt.Fprintf(output,
+				"%s:\r\n\r\n  remove some-hostname.%s [more-hostnames.%s] [my.very.own.domain.com] ... \r\n\r\n",
+				bold.Sprintf("remove usage"),
+				services.Hostname,
+				services.Hostname,
+			)
+
+			fmt.Fprint(output, "Remove hostname(s) previously added.\r\n")
+			fmt.Fprintf(output, "Tip: %s will remove every named route owned by you.\r\n", bold.Sprintf("remove all"))
+			return
+		}
+
+		if argv[1] == "all" {
+			removed, err := router.RemoveAll(s)
+			if err != nil {
+				fmt.Fprintf(output, "could not remove all names: %s\r\n", err)
+				fmt.Fprint(output, "some may have been removed.\r\n")
+				return
+			}
+
+			for _, nr := range removed {
+				fmt.Fprintf(output, "%s removed.\r\n", bold.Sprint(nr.FQDN()))
+			}
+			return
+		}
+
+		// remove all provided names
+		for _, name := range argv[1:] {
+			err := router.RemoveName(name, s)
+			if err != nil {
+				fmt.Fprintf(output, "could not remove %s: %s\r\n", bold.Sprintf(name), err)
+				continue
+			}
+
+			fmt.Fprintf(output, "%s removed.\r\n", bold.Sprintf(name))
+		}
+
 	case "add":
 		if len(argv) == 1 {
 			fmt.Fprintf(output,

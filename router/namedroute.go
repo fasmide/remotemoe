@@ -3,6 +3,7 @@ package router
 import (
 	"context"
 	"fmt"
+	"log"
 	"net"
 	"time"
 )
@@ -48,5 +49,8 @@ func (n *NamedRoute) DialContext(ctx context.Context, network, address string) (
 // happen - only in the case that a user tries to steal another users pubkey.hostname name -
 // an when the guy with the actural key comes online - this Replaced is called which will remove it from the database
 func (n *NamedRoute) Replaced() {
-
+	err := db.DeleteStruct(n)
+	if err != nil {
+		log.Printf("router.*NamedRoute.Replaced(): %s could be removed: %s", n.FQDN(), err)
+	}
 }

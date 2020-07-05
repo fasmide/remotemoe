@@ -2,6 +2,7 @@ package router
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -60,13 +61,10 @@ func Initialize() error {
 // Add is used to add a named route
 func Add(n *NamedRoute) error {
 	lock.Lock()
-	// we are not using defer Unlock() in here because we would like
-	// to do the database io outside the lock
+	defer lock.Unlock()
 
 	existing, exists := endpoints[n.FQDN()]
 	if exists {
-		lock.Unlock()
-
 		// if the found route is a *NamedRoute that happens to belong
 		// to the same owner as the provided one, return without an error
 		if existingNamedRoute, ok := existing.(*NamedRoute); ok {
@@ -78,27 +76,85 @@ func Add(n *NamedRoute) error {
 		return fmt.Errorf("router: %s is already active", n.FQDN())
 	}
 
-	endpoints[n.FQDN()] = n
-	lock.Unlock()
-
 	err := db.Save(n)
 	if err != nil {
-		// well now we are in the shitty situration that we have to aquire the lock again
-		lock.Lock()
-		delete(endpoints, n.FQDN())
-		lock.Unlock()
-
 		log.Printf("router: cannot add %s: %s", n.Name, err)
-		return fmt.Errorf("broken database")
+		return fmt.Errorf("%s cannot be added, try again later")
 	}
 
+	endpoints[n.FQDN()] = n
+
 	return nil
+}
+
+func RemoveName(s string, from Routable) error {
+	lock.Lock()
+	defer lock.Unlock()
+
+	toRemove, exists := endpoints[s]
+	if !exists {
+		return fmt.Errorf("%s does not exist", s)
+	}
+
+	// we must ensure the route that was found, is a namedroute
+	namedRouteToRemove, ok := toRemove.(*NamedRoute)
+	if !ok {
+		return fmt.Errorf("%s is not a named route", s)
+	}
+
+	// the Routable must own this namedRoute
+	if namedRouteToRemove.Owner != from.FQDN() {
+		return fmt.Errorf("%s is not your route to remove", s)
+	}
+
+	err := db.DeleteStruct(toRemove)
+	if err != nil {
+		log.Printf("router: could not remove %s: %s", s, err)
+		return fmt.Errorf("%s cannot be removed, try again later", s)
+	}
+
+	// if we have come this far, the route exists, it is a named route and does belong to the user trying to remove it
+	delete(endpoints, toRemove.FQDN())
+
+	return nil
+}
+
+// RemoveAll clears every hostname from a routable
+func RemoveAll(s Routable) ([]*NamedRoute, error) {
+	lock.Lock()
+	defer lock.Unlock()
+
+	var toRemove []*NamedRoute
+
+	err := db.Find("Owner", s.FQDN(), &toRemove)
+	if errors.Is(err, storm.ErrNotFound) {
+		return toRemove, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("cannot find names to remove: %s", err)
+	}
+
+	for _, nr := range toRemove {
+		err := db.DeleteStruct(nr)
+		if err != nil {
+			log.Printf("router: could not remove %s: %s", nr.FQDN(), err)
+			return nil, fmt.Errorf("unable to remove all names")
+		}
+		delete(endpoints, nr.FQDN())
+	}
+
+	return toRemove, nil
 }
 
 // Names returns a list of NamedRoutes
 func Names(r Routable) ([]NamedRoute, error) {
 	var result []NamedRoute
+
 	err := db.Find("Owner", r.FQDN(), &result)
+	if errors.Is(err, storm.ErrNotFound) {
+		err = nil
+	}
+
 	if err != nil {
 		err = fmt.Errorf("router: unable to fetch names: %w", err)
 		log.Printf(err.Error())

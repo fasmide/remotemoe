@@ -10,11 +10,14 @@ remotemoe - ssh plumber
 
 Stuff that needs doing
 * custom hostnames
-    * includes the adventure of a database of some kind
+    * database location and STATE_DIRECTORY
     * timeouts
-    * delete 
     * garbage collection
     * Maybe the timeout should be access based? ... gold would properly be both access'es and active connections
+    * current design leaves readers waiting when someone is editing the "routing table" - could be have a design where
+      a sort of "next routing table" is maintained and it is the only table that is made changes to - then when
+      a "update" is available we replace this new table with the old one?
+
 * readme
 * rewrite of a sessions terminal so that it:
     * isnt just a big ugly switch
@@ -24,6 +27,8 @@ Stuff that needs doing
 * tab complete
 * maybe dont allow acme to create certificate requests for hosts that do not provide https
 * ssh.Terminal provides a TabCompletionCallback which we should use
+* a windows way of keeping the tunnel open
+* maybe even a macos way of keeping the tunnel open
 
 
 Cool things that should not be done yet
