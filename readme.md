@@ -4,9 +4,26 @@
 |   _|  -__|        |  _  ||   _|  -__|        |  _  |  -__|
 |__| |_____|__|__|__|_____||____|_____|__|__|__|_____|_____|
 
-remotemoe - ssh plumber
+remotemoe - ssh plumbing all the things
 ```
 
+# remotemoe - what is it
+
+// # remotemoe - what is not
+
+# lets go!
+use remote.moe if your just in it for a quick and dirty test ride 
+
+# what can remotemoe do for you
+* expose your local services to the internet, 
+
+# what remotemoe wont do for you
+
+# compared to ngrok
+
+# compared to argo tunnels
+
+# compared to ... 
 
 Stuff that needs doing
 * readme
