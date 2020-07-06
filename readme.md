@@ -46,7 +46,7 @@ $
 
 That's pretty much all there is to it - all your nudes are now accessible on the URL that remotemoe spits out. 
 
-Next up is typing `help` to have a look at some of the other features. For instance, you could add a more human-friendly hostname, add HTTPS and SSH forwards, or look at the different ways to keep an ssh tunnel open.
+Next up is typing `help` to have a look at some of the other features. For instance, you could **add a more human-friendly hostname**, add **HTTPS and SSH forwards**, or look at the different ways to **keep an ssh tunnel open**.
 
 # Running your remotemoe
 You will need
@@ -78,8 +78,6 @@ $ ssh -R80:localhost:7000 remote.moe
 
 remotemoe and especially Cloudflare does a lot more than this, but to highlight a few differences:
 
-Cloudflare provides a massive Highly Available service at a cost - remotemoe does not.
-
-Cloudflare requires you to create an account if you need to define hostnames or bring a custom domain - remotemoe does not.
-
-remotemoe can be used as an SSH ProxyJump-host and is not limited to any specific protocol - any TCP port is reachable through remotemoe.
+* Cloudflare provides a massive Highly Available service at a cost - remotemoe does not.
+* Cloudflare requires you to create an account if you need to define hostnames or bring a custom domain - remotemoe does not.
+* remotemoe can be used as an SSH ProxyJump-host and is not limited to any specific protocol - any TCP port is reachable through remotemoe.
