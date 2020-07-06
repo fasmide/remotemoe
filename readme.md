@@ -17,7 +17,7 @@ Common use-cases include:
 * Allow your CI to run development branches that expose them-self for review.
 * Access remotely deployed Raspberry Pi's.
 
-remotemoe doesn't require its users to install, trust, or run any third-party software. It just uses plain old SSH, which is available everywhere these days.
+remotemoe doesn't require its users to install, trust, or run any third-party software. It uses plain old SSH, which is available everywhere these days.
 
 # What it's not
 It's no SaaS; if you need a reliable service, you're probably going to have to run it your self - any small cloud instance should do just fine...
@@ -64,7 +64,7 @@ To run remotemoe, you need to:
 
 This will be automated in the future :)
 
-# compared to Cloudflare's Argo Tunnels
+# Compared to Cloudflare's Argo Tunnels
 Argo tunnels, and Cloudflare in general, do a lot of things that remotemoe does not, but one similarity is their trycloudflare.com service (https://blog.cloudflare.com/a-free-argo-tunnel-for-your-next-project/) where everyone can expose their web app through a tunnel.
 
 Using their example, when using Argo tunnels, you are required to download their client and run:
