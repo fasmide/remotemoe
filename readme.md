@@ -9,20 +9,8 @@ remotemoe - ssh plumber
 
 
 Stuff that needs doing
-* custom hostnames
-    * database location and STATE_DIRECTORY
-    * timeouts
-    * garbage collection
-    * Maybe the timeout should be access based? ... gold would properly be both access'es and active connections
-    * current design leaves readers waiting when someone is editing the "routing table" - could be have a design where
-      a sort of "next routing table" is maintained and it is the only table that is made changes to - then when
-      a "update" is available we replace this new table with the old one?
-
 * readme
-* rewrite of a sessions terminal so that it:
-    * isnt just a big ugly switch
-    * accepts commands both when a session is active and when a client tries to execute a command directly
-    * it should be possible to indicate which names you require in an idempotent way
+* accept commands both when a session is active and when a client tries to execute a command directly
 * proper ssh exit messages
 * tab complete
 * maybe dont allow acme to create certificate requests for hosts that do not provide https
@@ -35,18 +23,13 @@ Cool things that should not be done yet
 * in the terminal session, have a "debugon" command which provides the user with relevant info about connections being made, http requests etc
 * enable users to add other pubkeys which they should be able to manage using any one of the linked keys
 * enable users to request random tcp ports for services that cannot mux - for a "1:1 mapping"
+* clear the database of hostnames that have not been used for a long time
 
 Items that need more research:
 
-* current namedRoute design allows users to steal each others raw pubkey fqdn's 
-    * maybe dont allow exactly the length of pubkey.hostname
-        * i like this one because they are soo long that no one will acturlly create such a long named route - unless trying todo what we dont want them to
-            * and if they do, they are just going to have to add or remove another char...
-    * maybe introduce a pattern where the router ensures no-one makes names on a special subdomain
-        * base32.k.remote.moe
-        * kind of complex
-    * maybe dont care: we will check if a route exists when users setup names and we could ensure that router.Replace removes any existing routes .. which is sorta already does but that really only had effect on other connections with the same pubkey
-    * maybe check to see if the name that is requested is a keyname we have seen before - it would become quite a long list though
+* current router design leaves readers waiting when someone is editing the "routing table" - could we have a design where
+    a sort of "next routing table" is maintained and it is the only table that is made changes to - then when
+    a "update" is available we replace this new table with the old one?
 
 * figure out if ssh.Session.DialContext needs to deal with the provided context
 
