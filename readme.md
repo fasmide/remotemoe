@@ -7,51 +7,79 @@
 remotemoe - ssh plumbing all the things
 ```
 
-# remotemoe - what is it
+# What is it
+remotemoe is a software daemon for exposing ad-hoc services to the internet without having to deal with the regular network stuff such as configuring VPNs, changing firewalls, or adding port forwards. 
 
-// # remotemoe - what is not
+Common use-cases include:
+* Allow third-party services to access your web app while you're developing it.
+* Let containers expose themself to the internet without having to change any infrastructure.
+* Quickly share a web app your working on with a collaborator or team for review.
+* Allow your CI to run development branches that expose them-self for review.
+* Access remotely deployed Raspberry Pi's.
 
-# lets go!
-use remote.moe if your just in it for a quick and dirty test ride 
+remotemoe doesn't require its users to install, trust, or run any third-party software. It just uses plain old SSH, which is available everywhere these days.
 
-# what can remotemoe do for you
-* expose your local services to the internet, 
+# What it's not
+It's no SaaS; if you need a reliable service, you're probably going to have to run it your self - any small cloud instance should do just fine...
 
-# what remotemoe wont do for you
+Available for getting started and testing is `remote.moe`. It is provided with no guarantees and will run broken and unstable branches from time to time :)
 
-# compared to ngrok
+# remote.moe - Have a go
+Use `remote.moe` if you are ready for a quick and dirty getting started experience. Assume you have a web server running on your local machine that listens for HTTP traffic on port 8080. 
 
-# compared to argo tunnels
+In a terminal, enter: (... or omit if you have something else in mind)
+```
+$ cd Pictures/; python -m SimpleHTTPServer 8080
+Serving HTTP on 0.0.0.0 port 8080 ...
+```
 
-# compared to ... 
+In another terminal, enter:
+```
+$ ssh -R80:localhost:8080 remote.moe
+New to remotemoe? - try 'firsttime' or 'help' and start exploring!
 
-Stuff that needs doing
-* readme
-* accept commands both when a session is active and when a client tries to execute a command directly
-* proper ssh exit messages
-* tab complete
-* maybe dont allow acme to create certificate requests for hosts that do not provide https
-* ssh.Terminal provides a TabCompletionCallback which we should use
-* a windows way of keeping the tunnel open
-* maybe even a macos way of keeping the tunnel open
+http (80)
+http://7k3j6g3h67l23j345wennkoc4a2223rhjkba22o77ihzdj3achwa.remote.moe/
 
+$ 
+```
 
-Cool things that should not be done yet
-* in the terminal session, have a "debugon" command which provides the user with relevant info about connections being made, http requests etc
-* enable users to add other pubkeys which they should be able to manage using any one of the linked keys
-* enable users to request random tcp ports for services that cannot mux - for a "1:1 mapping"
-* clear the database of hostnames that have not been used for a long time
+That's pretty much all there is to it - all your nudes are now accessible on the URL that remotemoe spits out. 
 
-Items that need more research:
+Next up is typing `help` to have a look at some of the other features. For instance, you could add a more human-friendly hostname, add HTTPS and SSH forwards, or look at the different ways to keep an ssh tunnel open.
 
-* current router design leaves readers waiting when someone is editing the "routing table" - could we have a design where
-    a sort of "next routing table" is maintained and it is the only table that is made changes to - then when
-    a "update" is available we replace this new table with the old one?
+# Running your remotemoe
+You will need
+* Some cloud instance, running ubuntu or similar
+* ... that has a public IP address
+* ... and a domain or subdomain with records appropriately configured
+* Knowledge of Golang and general systems administration :)
 
-* figure out if ssh.Session.DialContext needs to deal with the provided context
+To run remotemoe, you need to:
 
-* instead of buffered ssh.session.msgs - sync .msgs - have the terminal provide it and only let send's happen if non-nil
-    * But its properly not as simple as it seems, it would be nice to be able to "buffer" messages which the user will
-        receive once (or if) he opens a terminal, given ssh's nature we cannot really know beforehand if a connection is just
-        forwards or forwards and a terminal...
-    * usecase: we should notice the user if a port is forwarded that we dont know what to do with
+* Fetch this repo, build and move remotemoe to your instance or server
+* Create a service for running remotemoe, take inspiration from `infrastructure/remotemoe.service`
+* Ensure the hostname of the machine is set accordingly to your domain or subdomain.
+* Move openssh out of the way, remotemoe wants to listen on port 22
+
+This will be automated in the future :)
+
+# compared to Cloudflare's Argo Tunnels
+Argo tunnels, and Cloudflare in general, do a lot of things that remotemoe does not, but one similarity is their trycloudflare.com service (https://blog.cloudflare.com/a-free-argo-tunnel-for-your-next-project/) where everyone can expose their web app through a tunnel.
+
+Using their example, when using Argo tunnels, you are required to download their client and run:
+```
+$ cloudflared tunnel --url localhost:7000
+```
+a remotemoe equivalent would be:
+```
+$ ssh -R80:localhost:7000 remote.moe
+```
+
+remotemoe and especially Cloudflare does a lot more than this, but to highlight a few differences:
+
+Cloudflare provides a massive Highly Available service at a cost - remotemoe does not.
+
+Cloudflare requires you to create an account if you need to define hostnames or bring a custom domain - remotemoe does not.
+
+remotemoe can be used as an SSH ProxyJump-host and is not limited to any specific protocol - any TCP port is reachable through remotemoe.
