@@ -13,11 +13,22 @@ remotemoe is a software daemon for exposing ad-hoc services to the internet with
 Common use-cases include:
 * Allow third-party services to access your web app while you're developing it.
 * Let containers expose themself to the internet without having to change any infrastructure.
-* Quickly share a web app your working on with a collaborator or team for review.
+* Quickly share a web app with a collaborator or team for review.
 * Allow your CI to run development branches that expose them-self for review.
 * Access remotely deployed Raspberry Pi's.
 
 remotemoe doesn't require its users to install, trust, or run any third-party software. It uses plain old SSH, which is available everywhere these days.
+
+# How it works
+Users connect to remotemoe with their regular ssh client - they use the `-R` parameter to forward services which remotemoe then pass requests back to, from the public internet.
+
+At its purest form, users open a shell to remotemoe, passing on their local port 80.
+
+```
+$ ssh -R 80:localhost:80 remote.moe
+```
+
+Once opened, other people will immediately be able to access your `localhost:80` by accessing `xyz.remote.moe` as if it was on the public internet.
 
 # What it's not
 It's no SaaS; if you need a reliable service, you're probably going to have to run it your self - any small cloud instance should do just fine...
@@ -27,7 +38,7 @@ Available for getting started and testing is `remote.moe`. It is provided with n
 # remote.moe - Have a go
 Use `remote.moe` if you are ready for a quick and dirty getting started experience. Assume you have a web server running on your local machine that listens for HTTP traffic on port 8080. 
 
-In a terminal, enter: (... or omit if you have something else in mind)
+In a terminal, enter: ... omit this if you have something else in mind
 ```
 $ cd Pictures/; python -m SimpleHTTPServer 8080
 Serving HTTP on 0.0.0.0 port 8080 ...
@@ -57,12 +68,12 @@ You will need
 
 To run remotemoe, you need to:
 
-* Fetch this repo, build and move remotemoe to your instance or server
+* Fetch this repo, build and move the executable to your instance or server
 * Create a service for running remotemoe, take inspiration from `infrastructure/remotemoe.service`
 * Ensure the hostname of the machine is set accordingly to your domain or subdomain.
 * Move openssh out of the way, remotemoe wants to listen on port 22
 
-This will be automated in the future :)
+This shall be automated in the future :)
 
 # Compared to Cloudflare's Argo Tunnels
 Argo tunnels, and Cloudflare in general, do a lot of things that remotemoe does not, but one similarity is their trycloudflare.com service (https://blog.cloudflare.com/a-free-argo-tunnel-for-your-next-project/) where everyone can expose their web app through a tunnel.
