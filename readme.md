@@ -35,10 +35,10 @@ It's no SaaS; if you need a reliable service, you're probably going to have to r
 
 Available for getting started and testing is `remote.moe`. It is provided with no guarantees and will run broken and unstable branches from time to time :)
 
-# remote.moe - Have a go
+# Try remote.moe for testing
 Use `remote.moe` if you are ready for a quick and dirty getting started experience. Assume you have a web server running on your local machine that listens for HTTP traffic on port 8080. 
 
-In a terminal, enter: ... omit this if you have something else in mind
+In a terminal, enter: 
 ```
 $ cd Pictures/; python -m SimpleHTTPServer 8080
 Serving HTTP on 0.0.0.0 port 8080 ...
@@ -59,7 +59,49 @@ That's pretty much all there is to it - all your nudes are now accessible on the
 
 Next up is typing `help` to have a look at some of the other features. For instance, you could **add a more human-friendly hostname**, add **HTTPS and SSH forwards**, or look at the different ways to **keep an ssh tunnel open**.
 
-# Running your remotemoe
+# Protocols
+For convenience, remotemoe handles various types of protocols differently to make them easier to access:
+ 
+## HTTP
+When typical HTTP ports are forwarded (80, 81, 3000, 8000 or 8080), remotemoe reverse proxies traffic from its HTTP server to the ssh tunnel. 
+
+Based on the incoming HTTP request's `Host`-header, it selects the appropriate ssh tunnel to use. 
+
+## HTTPS
+When typical HTTPS ports are forwarded (443, 3443, 4443, or 8443), just as HTTP, remotemoe picks an SSH tunnel to route traffic based on the `Host`-header. 
+
+HTTPS traffic, however, requires the forwarded service to talk TLS. It doesn't do any certificate validation as no-one will be able to provide a valid SSL certificate inside the SSH tunnel. 
+
+## SSH
+SSH does not support virtual hosts in the same manner as HTTP does, but there's a trick we can use: the `-J ProxyJump` parameter.
+
+When typical SSH ports are forwarded (22, 2022 or 2222), remotemoe outputs a special ssh command which can reach the peer:
+
+```
+$ ssh -R22:localhost:22 remote.moe
+
+ssh (22)
+ssh -J remote.moe 7k3j6g3h67l23j345wennkoc4a2223rhjkba22o77ihzdj3achwa.remote.moe
+
+$ 
+```
+
+ProxyJump'ing through remotemoe, allows it to see what host the client is trying to reach and just like HTTP(S) traffic, pick an appropriate tunnel pass communication on to.
+
+By the way, ssh traffic is the most secure way of using remotemoe. You don't have to trust anyone but your remote endpoint. As long as you know your peers' fingerprint beforehand - there is no way remotemoe can intercept these ssh sessions even though they pass through it.  
+
+## Other
+remotemoe does not deal with any other protocols for now. But they are still available to use, however, not directly accessible without SSH. 
+
+You could for example access a forwarded SMTP service, by first forwarding with `-R25:localhost:25` and on the other end, doing something in the lines of:
+
+```
+ssh -L25:xyzxyz.remote.moe:25 remote.moe 
+```
+
+Notice the `-L` instead of `-R` - this pulls the remote service to your localhost, and the SMTP service should now be accessible from `localhost:25`.
+
+# Running remotemoe
 You will need
 * Some cloud instance, running ubuntu or similar
 * ... that has a public IP address
