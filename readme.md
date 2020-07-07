@@ -35,7 +35,7 @@ It's no SaaS; if you need a reliable service, you're probably going to have to r
 
 Available for getting started and testing is `remote.moe`. It is provided with no guarantees and will run broken and unstable branches from time to time :)
 
-# Try remote.moe for testing
+# Try remote.moe to get started
 Use `remote.moe` if you are ready for a quick and dirty getting started experience. Assume you have a web server running on your local machine that listens for HTTP traffic on port 8080. 
 
 In a terminal, enter: 
@@ -93,14 +93,13 @@ By the way, ssh traffic is the most secure way of using remotemoe. You don't hav
 ## Other
 remotemoe does not deal with any other protocols for now. But they are still available to use, however, not directly accessible without SSH. 
 
-You could for example access a forwarded SMTP service, by first forwarding with `-R25:localhost:25` and on the other end, doing something in the lines of:
+You could for example access a forwarded SMTP service, that was forwarded with `ssh -R25:localhost:25 remote.moe` by doing something in the lines of:
 
 ```
 ssh -L25:xyzxyz.remote.moe:25 remote.moe 
 ```
 
-Notice the `-L` instead of `-R` - this pulls the remote service to your localhost, and the SMTP service should now be accessible from `localhost:25`.
-
+Notice `-L` instead of `-R` - this pulls the remote service to your localhost, and the SMTP service should now be accessible from `localhost:25`.
 # Running remotemoe
 You will need
 * Some cloud instance, running ubuntu or similar
