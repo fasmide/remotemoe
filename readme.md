@@ -96,7 +96,7 @@ remotemoe does not deal with any other protocols for now. But they are still ava
 You could for example access a forwarded SMTP service, that was forwarded with `ssh -R25:localhost:25 remote.moe` by doing something in the lines of:
 
 ```
-ssh -L25:xyzxyz.remote.moe:25 remote.moe 
+ssh -L25:7k3j6g3h67l23j345wennkoc4a2223rhjkba22o77ihzdj3achwa.remote.moe:25 remote.moe 
 ```
 
 Notice `-L` instead of `-R` - this pulls the remote service to your localhost, and the SMTP service should now be accessible from `localhost:25`.
