@@ -1,6 +1,7 @@
 package http
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
@@ -26,6 +27,8 @@ func (h *HttpProxy) Initialize() {
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
+		// TLS inside the ssh tunnel will not be able to provide any valid certificate so ..
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 
 	// This director will try to set r.URL to something
