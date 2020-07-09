@@ -23,7 +23,8 @@ func (h *HttpProxy) Initialize() {
 	transport := &http.Transport{
 		DialContext:           router.DialContext,
 		ForceAttemptHTTP2:     true,
-		MaxIdleConns:          1000,
+		MaxIdleConns:          100,
+		MaxConnsPerHost:       10,
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
