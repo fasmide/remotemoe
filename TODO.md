@@ -1,8 +1,7 @@
 Stuff that needs doing
-* readme
-* somehow accept a "https to http" setting so that we dont have to run bogus https inside the tunnel
 * accept commands both when a session is active and when a client tries to execute a command directly
 * proper ssh exit messages
+* somehow accept a "https to http" setting so that we dont have to run bogus https inside the tunnel
 * tab complete
 * maybe dont allow acme to create certificate requests for hosts that do not provide https
 * ssh.Terminal provides a TabCompletionCallback which we should use
@@ -20,12 +19,6 @@ Cool things that should not be done yet
 * clear the database of hostnames that have not been used for a long time
 
 Items that need more research:
-* tidy up http protocols
-    * Drop incoming http support entirely and only support http support inside the tunnel to keep it simple
-    * who wants non-tls traffic in 2020 anyways? also: 
-    * its overkill to add tls to traffic thats inside the already encrypted ssh tunnel
-    * ... and we have to run with insecure certificate checking anyways as no-one will be able to provide a valid certificate inside the tunnel 
-
 * current router design leaves readers waiting when someone is editing the "routing table" - could we have a design where
     a sort of "next routing table" is maintained and it is the only table that is made changes to - then when
     a "update" is available we replace this new table with the old one?

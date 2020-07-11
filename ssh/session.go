@@ -421,7 +421,7 @@ func (s *Session) handleCommand(c string, output io.Writer) {
 
 		fmt.Fprintf(output, "  %s -N\r\n", services.Hostname)
 		fmt.Fprint(output, "\r\n")
-		fmt.Fprint(output, "[Install]\r\nWantedBy=multi-user.target\r\n")
+		fmt.Fprint(output, "[Install]\r\nWantedBy=default.target\r\n")
 		fmt.Fprint(output, "\r\n")
 		fmt.Fprint(output, "You should now be able to start the service:\r\n")
 		fmt.Fprint(output, " $ systemctl --user start remotemoe.service\r\n")
