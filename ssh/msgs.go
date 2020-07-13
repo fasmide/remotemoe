@@ -28,3 +28,8 @@ type tcpIPForward struct {
 	// i.e. if the port was 22 - we pass ssh trafic, 80 for http and so on...
 	Rport uint32
 }
+
+// https://tools.ietf.org/html/rfc4254#section-6.5
+type execCommand struct {
+	Command string
+}

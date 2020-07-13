@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/asdine/storm/v3 v3.2.0
+	github.com/cosiner/argv v0.1.0
 	github.com/fatih/color v1.9.0
 	go.etcd.io/bbolt v1.3.5 // indirect
 	golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9

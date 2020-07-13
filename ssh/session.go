@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"sort"
 	"strconv"
@@ -11,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cosiner/argv"
 	"github.com/fasmide/remotemoe/router"
 	"github.com/fasmide/remotemoe/services"
 	"github.com/fatih/color"
@@ -138,6 +140,7 @@ func (s *Session) handleChannels() {
 			continue
 		}
 
+		logger.Printf("unknown ChannelType from %s: %s", s.secureConn.RemoteAddr(), channelRequest.ChannelType())
 	}
 }
 
@@ -233,9 +236,29 @@ func (s *Session) acceptSession(session ssh.NewChannel) error {
 		return fmt.Errorf("unable to accept channel: %w", err)
 	}
 
+	// commands comes from "exec" requests or when a user enters them into the shell
+	commands := make(chan string)
+
 	// reply "success" to shell and pty-req's
 	go func(in <-chan *ssh.Request) {
 		for req := range in {
+			if req.Type == "exec" {
+				// parse exec request
+				exec := execCommand{}
+				err := ssh.Unmarshal(req.Payload, &exec)
+				if err != nil {
+					log.Printf("unable to parse exec payload: %s", err)
+					req.Reply(false, nil)
+					continue
+				}
+
+				// queue command which will be executed later
+				// when the client opens a shell
+				commands <- exec.Command
+				continue
+			}
+
+			// reply false to everything other then shell and pty-req
 			req.Reply(req.Type == "shell" || req.Type == "pty-req", nil)
 		}
 	}(requests)
@@ -244,7 +267,6 @@ func (s *Session) acceptSession(session ssh.NewChannel) error {
 	term := terminal.NewTerminal(channel, "$ ")
 
 	// read commands off the terminal and put them into commands channel
-	commands := make(chan string)
 	go func() {
 		for {
 			line, err := term.ReadLine()
@@ -266,7 +288,22 @@ func (s *Session) acceptSession(session ssh.NewChannel) error {
 				if !ok {
 					return
 				}
-				s.handleCommand(cmd, term)
+
+				// args will seperate command arvg1 | anothercommand argv1 and put the result into
+				// [][]string
+				args, err := argv.Argv(cmd, func(backquoted string) (string, error) {
+					return backquoted, nil
+				}, nil)
+
+				if err != nil {
+					fmt.Fprintf(term, "failed to parse: %s\r\n", err)
+					continue
+				}
+
+				for _, cmd := range args {
+					s.handleCommand(cmd, term)
+				}
+
 			case msg, ok := <-s.msgs:
 				if !ok {
 					return
@@ -280,13 +317,12 @@ func (s *Session) acceptSession(session ssh.NewChannel) error {
 	return nil
 }
 
-func (s *Session) handleCommand(c string, output io.Writer) {
+func (s *Session) handleCommand(argv []string, output io.Writer) {
 	bold := color.New(color.Bold)
 
 	// forces colors on
 	bold.EnableColor()
 
-	argv := strings.Fields(c)
 	if len(argv) == 0 {
 		return
 	}
@@ -366,7 +402,8 @@ func (s *Session) handleCommand(c string, output io.Writer) {
 				services.Hostname,
 				services.Hostname,
 			)
-			fmt.Fprint(output, "Add as many hostnames as needed. You can bring your own domains by setting up DNS records appropriately.\r\n")
+			fmt.Fprint(output, "Add as many hostnames as needed. You can bring your own domains by setting up DNS records appropriately.\r\n\r\n")
+			fmt.Fprintf(output, "Check out %s command for all active hostnames\r\n", bold.Sprint("services"))
 			return
 		}
 
@@ -377,11 +414,8 @@ func (s *Session) handleCommand(c string, output io.Writer) {
 				fmt.Fprintf(output, "%s could not be added: %s\r\n", bold.Sprint(n), err)
 				continue
 			}
-			fmt.Fprintf(output, "%s was added.\r\n", bold.Sprint(n))
+			fmt.Fprintf(output, "%s is active.\r\n", bold.Sprint(n))
 		}
-
-		fmt.Fprint(output, "\r\n")
-		fmt.Fprintf(output, "Check out %s command for all active hostnames\r\n", bold.Sprint("services"))
 
 	case "autossh":
 		fmt.Fprintf(output,
