@@ -1,9 +1,7 @@
 Stuff that needs doing
-* accept commands both when a session is active and when a client tries to execute a command directly
-* proper ssh exit messages
 * somehow accept a "https to http" setting so that we dont have to run bogus https inside the tunnel
-* tab complete
 * maybe dont allow acme to create certificate requests for hosts that do not provide https
+* proper ssh exit messages
 * ssh.Terminal provides a TabCompletionCallback which we should use
 * a windows way of keeping the tunnel open
     * it seems that actural windows services will require some amount of thirdparty software to wrap ssh.exe
