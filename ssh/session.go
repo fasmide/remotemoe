@@ -201,7 +201,7 @@ func (s *Session) informForward(p uint32) {
 	// first things first - do we know what to do with this portnumber?
 	service, exists := services.Ports[int(p)]
 	if !exists {
-		s.msgs <- fmt.Sprintf("%s (%d)\nthis port is unsupported, run `%s` command for more info...\n", bold.Sprintf("unknown"), p, bold.Sprintf("forwards"))
+		s.msgs <- fmt.Sprintf("%s (%d)\nssh -L%d:%s:%d %s\n", bold.Sprintf("other"), p, p, s.FQDN(), p, services.Hostname)
 		return
 	}
 
