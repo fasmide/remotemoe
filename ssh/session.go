@@ -414,7 +414,7 @@ func (s *Session) handleCommand(argv []string, output io.Writer) {
 				fmt.Fprintf(output, "%s could not be added: %s\r\n", bold.Sprint(n), err)
 				continue
 			}
-			fmt.Fprintf(output, "%s is active.\r\n", bold.Sprint(n))
+			fmt.Fprintf(output, "%s is active.\r\n", bold.Sprint(namedRoute.FQDN()))
 		}
 
 	case "autossh":

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strings"
 	"time"
 )
 
@@ -22,6 +23,9 @@ type NamedRoute struct {
 }
 
 func NewName(s string, r Routable) *NamedRoute {
+	// ensure all names are lowercased
+	s = strings.ToLower(s)
+
 	return &NamedRoute{
 		Owner:    r.FQDN(),
 		Name:     s,
