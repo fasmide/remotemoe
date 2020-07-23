@@ -49,6 +49,17 @@ func (n *NamedRoute) DialContext(ctx context.Context, network, address string) (
 	return DialContext(ctx, network, address)
 }
 
+func (n *NamedRoute) DialTLS(network, address string) (net.Conn, error) {
+	_, p, err := net.SplitHostPort(address)
+	if err != nil {
+		return nil, fmt.Errorf("NamedRoute: cannot split host from port on '%s': %w", address, err)
+	}
+
+	address = net.JoinHostPort(n.Owner, p)
+
+	return DialTLS(network, address)
+}
+
 // Replaced for NamedRoutes means deleting the NamedRoute for good and really should not
 // happen - only in the case that a user tries to steal another users pubkey.hostname name -
 // an when the guy with the actural key comes online - this Replaced is called which will remove it from the database

@@ -1,7 +1,6 @@
 package http
 
 import (
-	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
@@ -22,14 +21,13 @@ type HttpProxy struct {
 func (h *HttpProxy) Initialize() {
 	transport := &http.Transport{
 		DialContext:           router.DialContext,
+		DialTLS:               router.DialTLS,
 		ForceAttemptHTTP2:     true,
 		MaxIdleConns:          100,
 		MaxConnsPerHost:       10,
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
-		// TLS inside the ssh tunnel will not be able to provide any valid certificate so ..
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 
 	// This director will try to set r.URL to something

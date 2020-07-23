@@ -2,6 +2,7 @@ package ssh
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"log"
@@ -684,6 +685,41 @@ func (s *Session) DialContext(ctx context.Context, network, address string) (net
 
 	cConn := &ChannelConn{Channel: channel}
 	return cConn, nil
+
+}
+
+// DialTLS makes insecure TLS connections though the secure tunnel
+func (s *Session) DialTLS(network, address string) (net.Conn, error) {
+	_, port, err := net.SplitHostPort(address)
+	if err != nil {
+		return nil, fmt.Errorf("unable to figure out host and port: %w", err)
+	}
+
+	p, err := strconv.Atoi(port)
+	if err != nil {
+		return nil, fmt.Errorf("unable to convert port number to int: %w", err)
+	}
+
+	// did the client forward this port prior to this request?
+	_, isActive := s.services[uint32(p)]
+	if !isActive {
+		return nil, fmt.Errorf("this client does not provide port %d", p)
+	}
+
+	channel, reqs, err := s.secureConn.OpenChannel("forwarded-tcpip", ssh.Marshal(directTCPIP{
+		Addr:  "localhost",
+		Rport: uint32(p),
+	}))
+
+	if err != nil {
+		return nil, fmt.Errorf("could not open remote channel: %w", err)
+	}
+
+	go ssh.DiscardRequests(reqs)
+
+	cConn := &ChannelConn{Channel: channel}
+	tlsConn := tls.Client(cConn, &tls.Config{InsecureSkipVerify: true})
+	return tlsConn, nil
 
 }
 

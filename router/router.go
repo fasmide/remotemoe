@@ -17,6 +17,7 @@ import (
 // Routable describes requirements to be routable
 type Routable interface {
 	DialContext(ctx context.Context, network, address string) (net.Conn, error)
+	DialTLS(network, address string) (net.Conn, error)
 
 	// A routable should be able to identify it self
 	FQDN() string
@@ -259,4 +260,23 @@ func DialContext(ctx context.Context, network, address string) (net.Conn, error)
 	}
 
 	return d.DialContext(ctx, network, address)
+}
+
+// DialTLS dials up insecure tls connections though ssh tunnels.
+// It may be configured to skip TLS if the tunnel requested this
+func DialTLS(network, address string) (net.Conn, error) {
+	host, _, err := net.SplitHostPort(address)
+	if err != nil {
+		return nil, fmt.Errorf("router: could not split host from port: %w", err)
+	}
+
+	lock.RLock()
+	d, exists := endpoints[host]
+	lock.RUnlock()
+
+	if !exists {
+		return nil, fmt.Errorf("router: %s not found", host).(ErrNotFound)
+	}
+
+	return d.DialTLS(network, address)
 }
