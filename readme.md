@@ -7,9 +7,9 @@
 remotemoe - ssh plumbing all the things
 ```
 
-![go report](https://goreportcard.com/badge/github.com/fasmide/remotemoe)
-![Uptime Robot ratio (7 days)](https://img.shields.io/uptimerobot/ratio/7/m785618805-d44ced3b1bcc64e7d8f5aba2)
-![GitHub](https://img.shields.io/github/license/fasmide/remotemoe)
+[![go report](https://goreportcard.com/badge/github.com/fasmide/remotemoe)](https://goreportcard.com/report/github.com/fasmide/remotemoe)
+[![Uptime Robot ratio (7 days)](https://img.shields.io/uptimerobot/ratio/7/m785618805-d44ced3b1bcc64e7d8f5aba2)](https://stats.uptimerobot.com/P5VWwT4o7Z)
+![License](https://img.shields.io/github/license/fasmide/remotemoe)
 # What is it
 remotemoe is a software daemon for exposing ad-hoc services to the internet without having to deal with the regular network stuff such as configuring VPNs, changing firewalls, or adding port forwards. 
 
