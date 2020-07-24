@@ -34,7 +34,7 @@ func (h *Proxy) Initialize() {
 	}
 
 	// This director will try to set r.URL to something
-	// usefull based on the "virtualhost" and the destination tcp port
+	// useful based on the "virtualhost" and the destination tcp port
 	h.Director = func(r *http.Request) {
 
 		host, _, err := net.SplitHostPort(r.Host)
