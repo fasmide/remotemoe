@@ -289,7 +289,7 @@ func (s *Session) acceptSession(session ssh.NewChannel) error {
 					return
 				}
 
-				// args will seperate command arvg1 | anothercommand argv1 and put the result into
+				// args will separate command arvg1 | anothercommand argv1 and put the result into
 				// [][]string
 				args, err := argv.Argv(cmd, func(backquoted string) (string, error) {
 					return backquoted, nil
