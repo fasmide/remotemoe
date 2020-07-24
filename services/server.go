@@ -5,15 +5,16 @@ import (
 	"net"
 )
 
-type Server interface {
+type server interface {
 	Serve(net.Listener) error
 }
 
-type TLSServer interface {
+type tLSServer interface {
 	ServeTLS(net.Listener, string, string) error
 }
 
-func Serve(t string, s Server) {
+// Serve takes in a server and makes it serve
+func Serve(t string, s server) {
 	for _, port := range Services[t] {
 		go func(t string, p int) {
 			l, err := net.ListenTCP("tcp", &net.TCPAddr{Port: p})
@@ -36,7 +37,8 @@ func Serve(t string, s Server) {
 	}
 }
 
-func ServeTLS(t string, s TLSServer) {
+// ServeTLS takes in a tls capable server and makes it serve
+func ServeTLS(t string, s tLSServer) {
 	for _, port := range Services[t] {
 		go func(t string, p int) {
 			l, err := net.ListenTCP("tcp", &net.TCPAddr{Port: p})

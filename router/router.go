@@ -108,6 +108,10 @@ func Add(n *NamedRoute) error {
 	return nil
 }
 
+// RemoveName removes a named router if
+// * The route exists
+// * The route is a *NamedRoute
+// * The *NamedRoute's owner, is the one trying to remove it
 func RemoveName(s string, from Routable) error {
 	lock.Lock()
 	defer lock.Unlock()
