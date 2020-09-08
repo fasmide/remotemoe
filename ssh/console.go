@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"strings"
 
-	"github.com/cosiner/argv"
 	"github.com/fasmide/remotemoe/router"
 	"github.com/fasmide/remotemoe/services"
 	"github.com/fatih/color"
@@ -28,7 +28,7 @@ func (c *Console) Accept(channelRequest ssh.NewChannel) error {
 	// commands comes from "exec" requests or when a user enters them into the shell
 	commands := make(chan string)
 
-	// reply "success" to shell and pty-req's
+	// handle "shell", "pty-req" and "exec" requests
 	go func(in <-chan *ssh.Request) {
 		for req := range in {
 			if req.Type == "exec" {
@@ -67,7 +67,9 @@ func (c *Console) Accept(channelRequest ssh.NewChannel) error {
 		}
 	}()
 
-	fmt.Fprintf(term, "New to remotemoe? - try 'firsttime' or 'help' and start exploring!\r\n\r\n")
+	// DefaultCmd is our top level command, which embedds all others
+	main := DefaultCmd(c.session)
+	main.SetOut(term)
 
 	go func() {
 		defer channel.Close()
@@ -78,26 +80,16 @@ func (c *Console) Accept(channelRequest ssh.NewChannel) error {
 					return
 				}
 
-				// args will seperate command arvg1 | anothercommand argv1 and put the result into
-				// [][]string
-				args, err := argv.Argv(cmd, func(backquoted string) (string, error) {
-					return backquoted, nil
-				}, nil)
-
-				if err != nil {
-					fmt.Fprintf(term, "failed to parse: %s\r\n", err)
-					continue
-				}
-
-				for _, cmd := range args {
-					c.handleCommand(cmd, term)
+				if strings.TrimSpace(cmd) != "" {
+					main.SetArgs(strings.Fields(cmd))
+					_ = main.Execute()
 				}
 
 			case msg, ok := <-c.session.msgs:
 				if !ok {
 					return
 				}
-				fmt.Fprintf(term, "%s\r\n", msg)
+				fmt.Fprintf(term, "%s\n", msg)
 			}
 
 			c.session.PokeTimeout()
@@ -118,33 +110,6 @@ func (c *Console) handleCommand(argv []string, output io.Writer) {
 	}
 
 	switch argv[0] {
-	case "exit":
-		fmt.Fprint(output, "bye!\r\n")
-		c.session.Close()
-	case "quit":
-		fmt.Fprint(output, "bye!\r\n")
-		c.session.Close()
-	case "coffie":
-		fmt.Fprint(output, "Sure! - have some coffie\r\n")
-	case "help":
-		fmt.Fprint(output, bold.Sprint("Commands:"))
-		fmt.Fprint(output, "\r\n\r\n")
-
-		fmt.Fprint(output, "  services    info about services currently active\r\n")
-		fmt.Fprint(output, "  add         add hostname(s) to your services\r\n")
-		fmt.Fprint(output, "  remove      remove hostname(s) from your services\r\n")
-		fmt.Fprint(output, "  remove all  removes all hostnames from your services\r\n")
-
-		fmt.Fprintf(output, "\r\n%s\r\n\r\n", bold.Sprint("Ways of keeping an ssh connection open:"))
-		fmt.Fprint(output, "  autossh     using autossh\r\n")
-		fmt.Fprint(output, "  unitfile    using a systemd unit\r\n")
-		fmt.Fprint(output, "  bashloop    using a simple bash loop\r\n")
-
-		fmt.Fprintf(output, "\r\n%s\r\n\r\n", bold.Sprint("Other topics:"))
-		fmt.Fprint(output, "  firsttime   first time users of remotemoe and ssh tunneling\r\n")
-		fmt.Fprint(output, "  forwards    intro to ssh forward ports with `-R`\r\n")
-
-		fmt.Fprint(output, "\r\n")
 	case "remove":
 		if len(argv) == 1 {
 			fmt.Fprintf(output,
