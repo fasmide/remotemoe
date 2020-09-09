@@ -38,7 +38,8 @@ type Session struct {
 
 	// services list of forwarded port numbers
 	// these are just indicators that the remote sent a tcpip-forward request sometime
-	services map[uint32]struct{}
+	services     map[uint32]struct{}
+	servicesLock sync.RWMutex
 
 	// registeOnce is used to register with the router when ever a
 	// forward is received ... but only once :)
@@ -148,9 +149,18 @@ func (s *Session) handleChannels() {
 	}
 }
 
-// Forwards returns a map of forwarded tcp ports
+// Forwards returns a copy of forwarded port numbers
 func (s *Session) Forwards() map[uint32]struct{} {
-	return s.services
+	s.servicesLock.RLock()
+
+	v := make(map[uint32]struct{})
+	for p := range s.services {
+		v[p] = struct{}{}
+	}
+
+	s.servicesLock.RUnlock()
+
+	return v
 }
 
 func (s *Session) handleRequests() {
@@ -173,7 +183,9 @@ func (s *Session) handleRequests() {
 
 			// store this port number in services - future Dial's to this session
 			// will know if the service is available by looking in there
+			s.servicesLock.Lock()
 			s.services[forwardInfo.Rport] = struct{}{}
+			s.servicesLock.Unlock()
 
 			// disable idle timeout now that the connection is actually usefull
 			s.DisableTimeout()
@@ -287,7 +299,10 @@ func (s *Session) DialContext(ctx context.Context, network, address string) (net
 	}
 
 	// did the client forward this port prior to this request?
+	s.servicesLock.RLock()
 	_, isActive := s.services[uint32(p)]
+	s.servicesLock.RUnlock()
+
 	if !isActive {
 		return nil, fmt.Errorf("this client does not provide port %d", p)
 	}
