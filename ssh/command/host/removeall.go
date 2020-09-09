@@ -5,6 +5,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// RemoveAll removes all the previously added hostnames
 func RemoveAll(r router.Routable) *cobra.Command {
 	c := &cobra.Command{
 		Use:   "all",

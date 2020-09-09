@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Remove removes custom hostnames from the ssh session
 func Remove(r router.Routable) *cobra.Command {
 	c := &cobra.Command{
 		Use:   "remove host.domain.tld [host2.domain.tld] ...",

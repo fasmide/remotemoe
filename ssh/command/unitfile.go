@@ -5,6 +5,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Unitfile returns a cobra.Command that generates a systemd unit file based on the current session
 func Unitfile(d Forwarding) *cobra.Command {
 	return &cobra.Command{
 		Use:   "unitfile",

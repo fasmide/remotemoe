@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Add returns a cobra.Command which can add custom hostnames
 func Add(r router.Routable) *cobra.Command {
 	c := &cobra.Command{
 		Use:   fmt.Sprintf("add host.%s [host2.domain.tld] ...", services.Hostname),

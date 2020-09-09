@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Host returns a *cobra.Command that enables the user to mange custom hosts
 func Host(r router.Routable) *cobra.Command {
 	list := func(cmd *cobra.Command, _ []string) error {
 		namedRoutes, err := router.Names(r)

@@ -39,6 +39,7 @@ const firstTimeDiagram = `
   +----------------------+ +----------------------+
 `
 
+// Firsttime returns a *cobra.Command which tells the user about what remotemoe tries to solve
 func Firsttime() *cobra.Command {
 	return &cobra.Command{
 		Use:   "firsttime",

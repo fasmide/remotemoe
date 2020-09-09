@@ -17,6 +17,7 @@ const forwardDiagram = `
   -R [bind_address:]port:host:hostport
 `
 
+// Forwards returns a *cobra.Command which tells the user about currently forwarded ports
 func Forwards(d Forwarding) *cobra.Command {
 	help := &bytes.Buffer{}
 	fmt.Fprintf(help, "Forwards:\n")
