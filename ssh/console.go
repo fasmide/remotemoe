@@ -63,10 +63,6 @@ func (c *Console) Accept(channelRequest ssh.NewChannel) error {
 		}
 	}()
 
-	// DefaultCmd is our top level command, which embedds all others
-	main := DefaultCmd(c.session)
-	main.SetOut(term)
-
 	go func() {
 		defer channel.Close()
 		for {
@@ -77,6 +73,9 @@ func (c *Console) Accept(channelRequest ssh.NewChannel) error {
 				}
 
 				if strings.TrimSpace(cmd) != "" {
+					main := DefaultCmd(c.session)
+					main.SetOut(term)
+
 					main.SetArgs(strings.Fields(cmd))
 					_ = main.Execute()
 				}
