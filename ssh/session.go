@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"sort"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -320,29 +318,4 @@ func (s *Session) Replaced() {
 	time.Sleep(500 * time.Millisecond)
 
 	s.secureConn.Close()
-}
-
-func (s *Session) serviceKeys() []int {
-	keys := make([]int, 0, len(s.services))
-	for v := range s.services {
-		keys = append(keys, int(v))
-	}
-	sort.Sort(sort.IntSlice(keys))
-	return keys
-}
-
-func joinDigits(ds []int) string {
-	b := &strings.Builder{}
-	for i, v := range ds {
-		if i == 0 {
-			fmt.Fprintf(b, "%d", v)
-			continue
-		}
-		if i == len(ds)-1 {
-			fmt.Fprintf(b, " and %d", v)
-			continue
-		}
-		fmt.Fprintf(b, ", %d", v)
-	}
-	return b.String()
 }

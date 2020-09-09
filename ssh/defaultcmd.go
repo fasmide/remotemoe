@@ -12,6 +12,7 @@ func DefaultCmd(session *Session) *cobra.Command {
 	}
 
 	c.AddCommand(command.Coffie())
+	c.AddCommand(command.Firsttime())
 	c.AddCommand(command.Close(session))
 	c.AddCommand(command.Session(session))
 	c.AddCommand(command.Host(session))

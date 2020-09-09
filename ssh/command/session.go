@@ -9,9 +9,12 @@ type Data interface {
 func Session(d Data) *cobra.Command {
 	c := &cobra.Command{
 		Use:   "session",
-		Short: "Information about this session",
+		Short: "Info about this session",
 	}
 
 	c.AddCommand(Forwards(d))
+	c.AddCommand(Autossh(d))
+	c.AddCommand(Unitfile(d))
+
 	return c
 }
