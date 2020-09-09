@@ -8,7 +8,7 @@ import (
 func RemoveAll(r router.Routable) *cobra.Command {
 	c := &cobra.Command{
 		Use:   "all",
-		Short: "remove all hostname(s)",
+		Short: "Remove all hostname(s)",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			removed, err := router.RemoveAll(r)
 			if err != nil {

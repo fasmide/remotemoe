@@ -150,6 +150,10 @@ func (s *Session) handleChannels() {
 	}
 }
 
+func (s *Session) Forwards() map[uint32]struct{} {
+	return s.services
+}
+
 func (s *Session) handleRequests() {
 
 	for req := range s.requests {

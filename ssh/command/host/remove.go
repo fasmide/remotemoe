@@ -9,8 +9,8 @@ import (
 
 func Remove(r router.Routable) *cobra.Command {
 	c := &cobra.Command{
-		Use:   "remove host.domain.tld [host2.domain.tld] ... ",
-		Short: "remove hostname(s)",
+		Use:   "remove host.domain.tld [host2.domain.tld] ...",
+		Short: "Remove hostname(s)",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// try to remove all provided hosts

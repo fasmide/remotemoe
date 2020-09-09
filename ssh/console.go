@@ -110,68 +110,6 @@ func (c *Console) handleCommand(argv []string, output io.Writer) {
 	}
 
 	switch argv[0] {
-	case "remove":
-		if len(argv) == 1 {
-			fmt.Fprintf(output,
-				"%s:\r\n\r\n  remove some-hostname.%s [more-hostnames.%s] [my.very.own.domain.com] ... \r\n\r\n",
-				bold.Sprintf("remove usage"),
-				services.Hostname,
-				services.Hostname,
-			)
-
-			fmt.Fprint(output, "Remove hostname(s) previously added.\r\n")
-			fmt.Fprintf(output, "Tip: %s will remove every named route owned by you.\r\n", bold.Sprintf("remove all"))
-			return
-		}
-
-		if argv[1] == "all" {
-			removed, err := router.RemoveAll(c.session)
-			if err != nil {
-				fmt.Fprintf(output, "could not remove all names: %s\r\n", err)
-				fmt.Fprint(output, "some may have been removed.\r\n")
-				return
-			}
-
-			for _, nr := range removed {
-				fmt.Fprintf(output, "%s removed.\r\n", bold.Sprint(nr.FQDN()))
-			}
-			return
-		}
-
-		// remove all provided names
-		for _, name := range argv[1:] {
-			err := router.RemoveName(name, c.session)
-			if err != nil {
-				fmt.Fprintf(output, "could not remove %s: %s\r\n", bold.Sprintf(name), err)
-				continue
-			}
-
-			fmt.Fprintf(output, "%s removed.\r\n", bold.Sprintf(name))
-		}
-
-	case "add":
-		if len(argv) == 1 {
-			fmt.Fprintf(output,
-				"%s:\r\n\r\n  add some-wanted-hostname.%s [more-hostnames.%s] [my.very.own.domain.com] ... \r\n\r\n",
-				bold.Sprintf("add usage"),
-				services.Hostname,
-				services.Hostname,
-			)
-			fmt.Fprint(output, "Add as many hostnames as needed. You can bring your own domains by setting up DNS records appropriately.\r\n\r\n")
-			fmt.Fprintf(output, "Check out %s command for all active hostnames\r\n", bold.Sprint("services"))
-			return
-		}
-
-		for _, n := range argv[1:] {
-			namedRoute := router.NewName(n, c.session)
-			err := router.Add(namedRoute)
-			if err != nil {
-				fmt.Fprintf(output, "%s could not be added: %s\r\n", bold.Sprint(n), err)
-				continue
-			}
-			fmt.Fprintf(output, "%s is active.\r\n", bold.Sprint(namedRoute.FQDN()))
-		}
-
 	case "autossh":
 		fmt.Fprintf(output,
 			"# autossh template based on ports %s\r\n",
