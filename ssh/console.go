@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
 
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/terminal"
@@ -63,10 +64,16 @@ func (c *Console) Accept(channelRequest ssh.NewChannel) error {
 		}
 	}()
 
+	// autocomplete and the actural command execution cannot access
+	// the command at the same time
+	var lock sync.Mutex
 	main := DefaultCmd(c.session)
 	main.SetOut(term)
 
 	term.AutoCompleteCallback = func(line string, pos int, key rune) (newLine string, newPos int, ok bool) {
+		lock.Lock()
+		defer lock.Unlock()
+
 		// If we don't receive TAB, simply return without doing anything.
 		if key != '\t' {
 			return line, pos, false
@@ -148,6 +155,8 @@ func (c *Console) Accept(channelRequest ssh.NewChannel) error {
 					continue
 				}
 
+				lock.Lock()
+
 				main.SetArgs(strings.Fields(cmd))
 				_ = main.Execute()
 
@@ -155,6 +164,7 @@ func (c *Console) Accept(channelRequest ssh.NewChannel) error {
 				// for every invocation
 				CommandReset(main)
 
+				lock.Unlock()
 			case msg, ok := <-c.session.msgs:
 				if !ok {
 					return
