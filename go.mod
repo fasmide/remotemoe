@@ -6,6 +6,7 @@ require (
 	github.com/asdine/storm/v3 v3.2.0
 	github.com/fatih/color v1.9.0
 	github.com/spf13/cobra v1.0.0
+	github.com/spf13/pflag v1.0.3
 	go.etcd.io/bbolt v1.3.5 // indirect
 	golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9
 	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b // indirect
