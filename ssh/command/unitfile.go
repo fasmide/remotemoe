@@ -5,7 +5,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func Unitfile(d Data) *cobra.Command {
+func Unitfile(d Forwarding) *cobra.Command {
 	return &cobra.Command{
 		Use:   "unitfile",
 		Short: "Generates an unitfile for use with systemd",

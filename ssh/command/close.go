@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Close returns a *cobra.Command which closes the session
 func Close(c io.Closer) *cobra.Command {
 	return &cobra.Command{
 		Use:     "quit",

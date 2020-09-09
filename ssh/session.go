@@ -148,6 +148,7 @@ func (s *Session) handleChannels() {
 	}
 }
 
+// Forwards returns a map of forwarded tcp ports
 func (s *Session) Forwards() map[uint32]struct{} {
 	return s.services
 }

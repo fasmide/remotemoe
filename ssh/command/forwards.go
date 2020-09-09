@@ -17,7 +17,7 @@ const forwardDiagram = `
   -R [bind_address:]port:host:hostport
 `
 
-func Forwards(d Data) *cobra.Command {
+func Forwards(d Forwarding) *cobra.Command {
 	help := &bytes.Buffer{}
 	fmt.Fprintf(help, "Forwards:\n")
 	fmt.Fprint(help, "  List all currently forwarded ports\n\n")

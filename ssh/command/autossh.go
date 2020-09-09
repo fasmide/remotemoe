@@ -9,7 +9,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func Autossh(d Data) *cobra.Command {
+// Autossh returns a *cobra.Command which generates an autossh snippit
+func Autossh(d Forwarding) *cobra.Command {
 	return &cobra.Command{
 		Use:   "autossh",
 		Short: "Generates snippet for use with autossh",
