@@ -52,18 +52,6 @@ func (c *Console) Accept(channelRequest ssh.NewChannel) error {
 	// setup this sessions terminal
 	term := terminal.NewTerminal(channel, "$ ")
 
-	// read commands off the terminal and put them into commands channel
-	go func() {
-		for {
-			line, err := term.ReadLine()
-			if err != nil {
-				close(commands)
-				break
-			}
-			commands <- line
-		}
-	}()
-
 	// autocomplete and the actural command execution cannot access
 	// the command at the same time
 	var lock sync.Mutex
@@ -141,6 +129,18 @@ func (c *Console) Accept(channelRequest ssh.NewChannel) error {
 
 		return prefix + postfix, pos, false
 	}
+
+	// read commands off the terminal and put them into commands channel
+	go func() {
+		for {
+			line, err := term.ReadLine()
+			if err != nil {
+				close(commands)
+				break
+			}
+			commands <- line
+		}
+	}()
 
 	go func() {
 		defer channel.Close()
