@@ -13,13 +13,14 @@ import (
 	"github.com/fasmide/remotemoe/services"
 )
 
-type HttpProxy struct {
+// Proxy reverse proxies requests though router
+type Proxy struct {
 	httputil.ReverseProxy
 }
 
 // Initialize sets up this proxy's transport to dial though
 // Router instead of doing classic network dials
-func (h *HttpProxy) Initialize() {
+func (h *Proxy) Initialize() {
 	transport := &http.Transport{
 		DialContext:           router.DialContext,
 		ForceAttemptHTTP2:     true,
@@ -33,7 +34,7 @@ func (h *HttpProxy) Initialize() {
 	}
 
 	// This director will try to set r.URL to something
-	// usefull based on the "virtualhost" and the destination tcp port
+	// useful based on the "virtualhost" and the destination tcp port
 	h.Director = func(r *http.Request) {
 
 		host, _, err := net.SplitHostPort(r.Host)

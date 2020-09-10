@@ -58,7 +58,7 @@ func (s *Session) Handle() {
 	// initialize services map
 	s.services = make(map[uint32]struct{})
 
-	// if a connection havnt done anything usefull within a minute, throw them away
+	// if a connection havnt done anything useful within a minute, throw them away
 	s.idleTimeout = time.AfterFunc(IdleTimeout, s.Timeout)
 
 	// The incoming Request channel must be serviced.
@@ -187,7 +187,7 @@ func (s *Session) handleRequests() {
 			s.services[forwardInfo.Rport] = struct{}{}
 			s.servicesLock.Unlock()
 
-			// disable idle timeout now that the connection is actually usefull
+			// disable idle timeout now that the connection is actually useful
 			s.DisableTimeout()
 
 			// register with the router - only do this once

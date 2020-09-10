@@ -25,7 +25,7 @@ type tcpIPForward struct {
 	Addr string
 
 	// We use this port do determinane what kind of traffic we should pass along
-	// i.e. if the port was 22 - we pass ssh trafic, 80 for http and so on...
+	// i.e. if the port was 22 - we pass ssh traffic, 80 for http and so on...
 	Rport uint32
 }
 

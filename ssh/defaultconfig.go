@@ -57,7 +57,7 @@ func DefaultConfig() (*ssh.ServerConfig, error) {
 		KeyboardInteractiveCallback: func(conn ssh.ConnMetadata, client ssh.KeyboardInteractiveChallenge) (*ssh.Permissions, error) {
 			_, err := client(conn.User(), noPublicKeyBanner, []string{""}, []bool{false})
 			if err != nil {
-				return nil, fmt.Errorf("error doing keyboard interactive challange: %w", err)
+				return nil, fmt.Errorf("error doing keyboard interactive challenge: %w", err)
 			}
 
 			return nil, fmt.Errorf("user did not public key")

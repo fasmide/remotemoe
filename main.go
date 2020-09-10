@@ -18,7 +18,7 @@ func main() {
 		log.Fatalf("could not initialize router: %s", err)
 	}
 
-	proxy := &http.HttpProxy{}
+	proxy := &http.Proxy{}
 	proxy.Initialize()
 
 	server, err := http.NewServer()

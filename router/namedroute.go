@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+// NamedRoute implements Routable and is used when people want to create
+// more human friendly hostnames for their tunnels
 type NamedRoute struct {
 	// Owner's pubkey fingerprint
 	Owner string `storm:"index"`
@@ -22,6 +24,7 @@ type NamedRoute struct {
 	Created time.Time
 }
 
+// NewName sets up and returns a *NamedRoute which can be added the router
 func NewName(s string, r Routable) *NamedRoute {
 	// ensure all names are lowercased
 	s = strings.ToLower(s)
@@ -34,10 +37,12 @@ func NewName(s string, r Routable) *NamedRoute {
 	}
 }
 
+// FQDN returns the fully qualified domain name for this route
 func (n *NamedRoute) FQDN() string {
 	return n.Name
 }
 
+// DialContext on a NamedRoute looks up the correct tunnel in the router and uses its DialContext
 func (n *NamedRoute) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
 	_, p, err := net.SplitHostPort(address)
 	if err != nil {
