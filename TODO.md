@@ -2,7 +2,6 @@ Stuff that needs doing
 * somehow accept a "https to http" setting so that we dont have to run bogus https inside the tunnel
 * maybe dont allow acme to create certificate requests for hosts that do not provide https
 * proper ssh exit messages
-* ssh.Terminal provides a TabCompletionCallback which we should use
 * a windows way of keeping the tunnel open
     * it seems that actural windows services will require some amount of thirdparty software to wrap ssh.exe
     * the task scheduler does provide stuff like "On boot", "repeat indefinitely", and is able deal with already running instances
