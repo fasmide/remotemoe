@@ -31,7 +31,7 @@ func DefaultCmd(session *Session) *cobra.Command {
 	c.AddCommand(command.Session(session))
 	c.AddCommand(command.Host(session))
 	c.AddCommand(command.Access(session))
-	c.AddCommand(command.HTTP())
+	c.AddCommand(command.HTTP(session))
 
 	return c
 }

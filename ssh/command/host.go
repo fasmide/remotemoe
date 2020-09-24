@@ -24,12 +24,9 @@ func Host(r router.Routable) *cobra.Command {
 				return fmt.Errorf("unable to lookup your custom names: %w", err)
 			}
 
-			if len(namedRoutes) == 0 {
-				cmd.Printf("No active hostnames.\n")
-				return nil
-			}
-
 			cmd.Printf("Active hostnames:\n")
+
+			cmd.Printf("%s (fixed)\n", r.FQDN())
 			for _, nr := range namedRoutes {
 				cmd.Printf("%s\n", nr.FQDN())
 			}
