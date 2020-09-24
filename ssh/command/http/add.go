@@ -3,6 +3,7 @@ package http
 import (
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/fasmide/remotemoe/router"
@@ -27,10 +28,16 @@ func Add(r router.Routable) *cobra.Command {
 				return fmt.Errorf("unable to validate match: %w", err)
 			}
 
-			if match.Port() != "" {
-				if pScheme, found := services.Ports[match.Port()]; found {
-					if pScheme != match.Scheme {
+			// if the match host contains a portnumber, make sure the match port and scheme makes sense
+			if port := match.Port(); port != "" {
+				p, err := strconv.Atoi(port)
+				if err != nil {
+					return fmt.Errorf("unable to parse port form match url: %w", err)
+				}
 
+				if pScheme, found := services.Ports[p]; found {
+					if pScheme != match.Scheme {
+						return fmt.Errorf("port %d of match url will never encounter %s traffic, only %s", p, match.Scheme, pScheme)
 					}
 				}
 			}
@@ -62,10 +69,10 @@ func validateURL(u *url.URL, creator router.Routable) error {
 		return fmt.Errorf("no host provided in url: %s", u.String())
 	}
 
-	// u.Host may contain host:port - split off port if its there
+	// u.Host may be in the form of "host:port" - split off port if its there
 	host := u.Host
 	if u.Port() != "" {
-		host = strings.SplitN(host, ":", 1)[0]
+		host = strings.SplitN(host, ":", 2)[0]
 	}
 
 	// host must be available in the router
