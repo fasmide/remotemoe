@@ -1,6 +1,5 @@
 Stuff that needs doing
-* somehow accept a "https to http" setting so that we dont have to run bogus https inside the tunnel
-* maybe dont allow acme to create certificate requests for hosts that do not provide https
+* clean up after http rewrites
 * proper ssh exit messages
 * a windows way of keeping the tunnel open
     * it seems that actural windows services will require some amount of thirdparty software to wrap ssh.exe

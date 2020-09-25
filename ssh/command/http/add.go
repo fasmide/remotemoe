@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/fasmide/remotemoe/http"
 	"github.com/fasmide/remotemoe/router"
 	"github.com/fasmide/remotemoe/services"
 	"github.com/spf13/cobra"
@@ -52,6 +53,16 @@ func Add(r router.Routable) *cobra.Command {
 				return fmt.Errorf("unable to validate destination url: %w", err)
 			}
 
+			var m http.Direction
+			m.FromURL(match)
+
+			var d http.Direction
+			d.FromURL(dest)
+			err = http.Add(m, d)
+			if err != nil {
+				return fmt.Errorf("unable to add match to http router: %w", err)
+			}
+
 			cmd.Printf("%s to %s ... no problem\n", match, dest)
 
 			return nil
@@ -78,17 +89,17 @@ func validateURL(u *url.URL, creator router.Routable) error {
 	// host must be available in the router
 	r, found := router.Find(host)
 	if !found {
-		return fmt.Errorf("host \"%s\" not found, add with `host add %s`", u.Host, u.Host)
+		return fmt.Errorf("host \"%s\" not found, add with `host add %s`", host, host)
 	}
 
 	// if r is a namedRoute, it must be owned by the current routable
 	if namedRoute, ok := r.(*router.NamedRoute); ok {
 		if namedRoute.Owner != creator.FQDN() {
-			return fmt.Errorf("this session does not own %s", u.Host)
+			return fmt.Errorf("this session does not own %s", host)
 		}
 	} else {
 		// if this is not a named route, host should match the current session's FQDN
-		if u.Host != creator.FQDN() {
+		if host != creator.FQDN() {
 			return fmt.Errorf("this session cannot add matches for other sessions hostnames")
 		}
 	}
