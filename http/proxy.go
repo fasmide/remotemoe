@@ -29,10 +29,7 @@ func (h *Proxy) Initialize() {
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 
-	// This director will try to set r.URL to something
-	// useful based on the "virtualhost" and the destination tcp port
 	h.Director = director
-
 	h.Transport = transport
 
 }

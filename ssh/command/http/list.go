@@ -1,14 +1,22 @@
 package http
 
-import "github.com/spf13/cobra"
+import (
+	"fmt"
+
+	"github.com/fasmide/remotemoe/router"
+	"github.com/spf13/cobra"
+)
 
 // List displays a list of active http configurations
-func List() *cobra.Command {
+func List(r router.Routable) *cobra.Command {
 	c := &cobra.Command{
 		Use:   "list",
 		Short: "Lists active matches",
-		Run: func(cmd *cobra.Command, _ []string) {
-
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			hosts, err := router.Names(r)
+			if err != nil {
+				return fmt.Errorf("could not lookup hosts: %w", err)
+			}
 		},
 	}
 

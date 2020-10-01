@@ -23,7 +23,6 @@ func (d *Direction) String() string {
 }
 
 func (d *Direction) FromURL(u *url.URL) error {
-	// if no port specified, insert default scheme port
 	host, port, err := net.SplitHostPort(u.Host)
 	if err != nil {
 		return err
@@ -89,9 +88,7 @@ func director(r *http.Request) {
 	lock.RLock()
 	defer lock.RUnlock()
 	if dest, exists := matches[r.URL.Scheme+"://"+r.URL.Host]; exists {
-		// as we are only matching scheme + "host:port"
-		// we cannot just replace the URL
-		// - if we did, the url would loose its /path and potential query parameters
+		// change scheme and "host + port"
 		r.URL.Scheme = dest.Scheme
 		r.URL.Host = dest.Host + ":" + dest.Port
 	}

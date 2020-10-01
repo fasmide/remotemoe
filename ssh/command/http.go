@@ -20,6 +20,11 @@ the ssh session.
 
 An X-Forwarded-For header is added, which should be the only default change.
 
+Directions can be changed, for instance, you could drop ssl inside the ssh tunnel,
+by adding a direction from https://somehost.tld/ to http://somehost.tld:8080/.
+
+The HTTP proxy only dials inside remotemoe and cannot upstream HTTP requests outside tunnels.
+
 `
 
 // HTTP is the toplevel command user management of the http proxy
