@@ -35,8 +35,7 @@ func HTTP(session router.Routable) *cobra.Command {
 		Long:  longHelp,
 	}
 
-	c.AddCommand(http.Add(session))
-	c.AddCommand(http.List())
+	c.AddCommand(http.Rewrite(session))
 
 	return c
 }

@@ -1,4 +1,4 @@
-package http
+package rewrite
 
 import (
 	"fmt"
@@ -54,11 +54,19 @@ func Add(r router.Routable) *cobra.Command {
 			}
 
 			var m http.Direction
-			m.FromURL(match)
+			err = m.FromURL(match)
+			if err != nil {
+				return fmt.Errorf("unable to parse match: %w", err)
+			}
 
 			var d http.Direction
-			d.FromURL(dest)
-			err = http.Add(m, d)
+			err = d.FromURL(dest)
+			if err != nil {
+				return fmt.Errorf("unable to parse destination: %w", err)
+			}
+
+			rewrite := http.Rewrite{From: m, To: d}
+			err = http.Add(rewrite)
 			if err != nil {
 				return fmt.Errorf("unable to add match to http router: %w", err)
 			}

@@ -2,15 +2,24 @@ package http
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/fasmide/remotemoe/services"
 )
+
+type Rewrite struct {
+	From Direction
+	To   Direction
+}
+
+func (r Rewrite) String() string {
+	return fmt.Sprintf("%+v -> %+v", r.From, r.To)
+}
 
 type Direction struct {
 	Scheme string
@@ -18,18 +27,10 @@ type Direction struct {
 	Port   string
 }
 
-func (d *Direction) String() string {
-	return d.Scheme + "://" + d.Host + ":" + d.Port
-}
-
 func (d *Direction) FromURL(u *url.URL) error {
 	host, port, err := net.SplitHostPort(u.Host)
 	if err != nil {
 		return err
-	}
-
-	if !strings.Contains(u.Scheme, "http") {
-		return fmt.Errorf("unknown scheme '%s': only http or https supported", u.Scheme)
 	}
 
 	d.Scheme = u.Scheme
@@ -39,32 +40,77 @@ func (d *Direction) FromURL(u *url.URL) error {
 	return nil
 }
 
-var matches map[string]Direction
-var lock sync.RWMutex
+var (
+	lock    sync.RWMutex
+	matches map[Direction]Rewrite
+	index   map[string][]Rewrite
+)
 
 func init() {
-	matches = make(map[string]Direction)
+	matches = make(map[Direction]Rewrite)
+	index = make(map[string][]Rewrite)
 }
 
-func Add(m Direction, d Direction) error {
+func Add(r Rewrite) error {
+	log.Printf("adding %s", r.String())
 	lock.Lock()
 	defer lock.Unlock()
 
-	_, exists := matches[m.String()]
+	// add this match or fail
+	_, exists := matches[r.From]
 	if exists {
-		return fmt.Errorf("%s already exists", m)
+		return fmt.Errorf("%s already exists", r.String())
 	}
+	matches[r.From] = r
 
-	matches[m.String()] = d
+	// index this new direction for later
+	if s, exists := index[r.From.Host]; exists {
+		index[r.From.Host] = append(s, r)
+		return nil
+	}
+	index[r.From.Host] = []Rewrite{r}
 
 	return nil
+}
+
+func List(hosts ...string) []Rewrite {
+	lock.RLock()
+
+	result := []Rewrite{}
+	for _, host := range hosts {
+		if match, exists := index[host]; exists {
+			result = append(result, match...)
+		}
+	}
+
+	lock.RUnlock()
+	return result
 }
 
 func Remove(d Direction) {
 	lock.Lock()
 	defer lock.Unlock()
 
-	delete(matches, d.String())
+	// remove directon from matches
+	delete(matches, d)
+
+	// remove from index
+	s := index[d.Host]
+
+	// if this is the last entry in the index - remove the index entirely
+	if len(s) == 1 {
+		delete(index, d.Host)
+		return
+	}
+
+	// search for the direction and chop it off the slice
+	for i, r := range s {
+		if r.From == d {
+			s[i] = s[len(s)-1]
+			s = s[:len(s)-1]
+			break
+		}
+	}
 
 }
 
@@ -84,12 +130,19 @@ func director(r *http.Request) {
 	// services.Ports should map 80 into http, 443 into https and so on
 	r.URL.Scheme = services.Ports[dPort]
 
+	direction := Direction{}
+	err = direction.FromURL(r.URL)
+	if err != nil {
+		log.Printf("http director: could not determinane direction from request url: %s", err)
+		return
+	}
+
 	// rewrite direction if a Match exists
 	lock.RLock()
 	defer lock.RUnlock()
-	if dest, exists := matches[r.URL.Scheme+"://"+r.URL.Host]; exists {
+	if Rewrite, exists := matches[direction]; exists {
 		// change scheme and "host + port"
-		r.URL.Scheme = dest.Scheme
-		r.URL.Host = dest.Host + ":" + dest.Port
+		r.URL.Scheme = Rewrite.To.Scheme
+		r.URL.Host = Rewrite.To.Host + ":" + Rewrite.To.Port
 	}
 }
