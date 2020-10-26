@@ -14,11 +14,10 @@ import (
 
 type Rewrite struct {
 	From Direction
-	To   Direction
-}
 
-func (r Rewrite) String() string {
-	return fmt.Sprintf("%+v -> %+v", r.From, r.To)
+	// upstream
+	Scheme string
+	Port   string
 }
 
 type Direction struct {
@@ -52,14 +51,13 @@ func init() {
 }
 
 func Add(r Rewrite) error {
-	log.Printf("adding %s", r.String())
 	lock.Lock()
 	defer lock.Unlock()
 
 	// add this match or fail
 	_, exists := matches[r.From]
 	if exists {
-		return fmt.Errorf("%s already exists", r.String())
+		return fmt.Errorf("%+v already exists", r)
 	}
 	matches[r.From] = r
 
@@ -140,9 +138,9 @@ func director(r *http.Request) {
 	// rewrite direction if a Match exists
 	lock.RLock()
 	defer lock.RUnlock()
-	if Rewrite, exists := matches[direction]; exists {
+	if re, exists := matches[direction]; exists {
 		// change scheme and "host + port"
-		r.URL.Scheme = Rewrite.To.Scheme
-		r.URL.Host = Rewrite.To.Host + ":" + Rewrite.To.Port
+		r.URL.Scheme = re.Scheme
+		r.URL.Host = re.From.Host + ":" + re.Port
 	}
 }

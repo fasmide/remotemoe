@@ -13,7 +13,7 @@ const longHelp = `
 func Rewrite(session router.Routable) *cobra.Command {
 	c := &cobra.Command{
 		Use:   "rewrite",
-		Short: "Rewrite requests",
+		Short: "Rewrite scheme and port upstream",
 		Long:  longHelp,
 	}
 

@@ -17,40 +17,17 @@ func Add(r router.Routable) *cobra.Command {
 	c := &cobra.Command{
 		Use:   "add",
 		Short: "Add a new match",
+
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// both urls must have a host that belongs to the current ssh session
 			match, err := url.Parse(args[0])
 			if err != nil {
 				return fmt.Errorf("unable to parse match url %s: %w", args[0], err)
 			}
 
+			// we have some extra requirements for these urls, make sure they are fulfiled
 			err = validateURL(match, r)
 			if err != nil {
 				return fmt.Errorf("unable to validate match: %w", err)
-			}
-
-			// if the match host contains a portnumber, make sure the match port and scheme makes sense
-			if port := match.Port(); port != "" {
-				p, err := strconv.Atoi(port)
-				if err != nil {
-					return fmt.Errorf("unable to parse port form match url: %w", err)
-				}
-
-				if pScheme, found := services.Ports[p]; found {
-					if pScheme != match.Scheme {
-						return fmt.Errorf("port %d of match url will never encounter %s traffic, only %s", p, match.Scheme, pScheme)
-					}
-				}
-			}
-
-			dest, err := url.Parse(args[1])
-			if err != nil {
-				return fmt.Errorf("unable to parse destination url %s: %w", args[1], err)
-			}
-
-			err = validateURL(dest, r)
-			if err != nil {
-				return fmt.Errorf("unable to validate destination url: %w", err)
 			}
 
 			var m http.Direction
@@ -59,24 +36,38 @@ func Add(r router.Routable) *cobra.Command {
 				return fmt.Errorf("unable to parse match: %w", err)
 			}
 
-			var d http.Direction
-			err = d.FromURL(dest)
+			// scheme and port must be set
+			flags := cmd.LocalFlags()
+			scheme, err := flags.GetString("scheme")
 			if err != nil {
-				return fmt.Errorf("unable to parse destination: %w", err)
+				return fmt.Errorf("scheme flag error: %w", err)
 			}
 
-			rewrite := http.Rewrite{From: m, To: d}
+			port, err := flags.GetString("port")
+			if err != nil {
+				return fmt.Errorf("port flag error: %w", err)
+			}
+
+			rewrite := http.Rewrite{
+				From:   m,
+				Scheme: scheme,
+				Port:   port,
+			}
+
 			err = http.Add(rewrite)
 			if err != nil {
 				return fmt.Errorf("unable to add match to http router: %w", err)
 			}
 
-			cmd.Printf("%s to %s ... no problem\n", match, dest)
+			cmd.Printf("%s to %s/%s ... no problem\n", match, scheme, port)
 
 			return nil
 		},
-		Args: cobra.ExactArgs(2),
+		Args: cobra.ExactArgs(1),
 	}
+
+	c.Flags().StringP("scheme", "s", "http", "scheme to be used upstream")
+	c.Flags().StringP("port", "p", "80", "port to be used upstream")
 
 	return c
 
@@ -109,6 +100,20 @@ func validateURL(u *url.URL, creator router.Routable) error {
 		// if this is not a named route, host should match the current session's FQDN
 		if host != creator.FQDN() {
 			return fmt.Errorf("this session cannot add matches for other sessions hostnames")
+		}
+	}
+
+	// if the match host contains a portnumber, make sure the match port and scheme makes sense
+	if port := u.Port(); port != "" {
+		p, err := strconv.Atoi(port)
+		if err != nil {
+			return fmt.Errorf("unable to parse port form match url: %w", err)
+		}
+
+		if pScheme, found := services.Ports[p]; found {
+			if pScheme != u.Scheme {
+				return fmt.Errorf("port %d of match url will never encounter %s traffic, only %s", p, u.Scheme, pScheme)
+			}
 		}
 	}
 
