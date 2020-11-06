@@ -26,6 +26,10 @@ type Direction struct {
 	Port   string
 }
 
+type Owner interface {
+	FQDN() string
+}
+
 func (d *Direction) FromURL(u *url.URL) error {
 	host, port, err := net.SplitHostPort(u.Host)
 	if err != nil {
@@ -50,7 +54,8 @@ func init() {
 	index = make(map[string][]Rewrite)
 }
 
-func Add(r Rewrite) error {
+// Add adds a rewrite to this owners rewrites
+func Add(owner Owner, r Rewrite) error {
 	lock.Lock()
 	defer lock.Unlock()
 
@@ -62,30 +67,25 @@ func Add(r Rewrite) error {
 	matches[r.From] = r
 
 	// index this new direction for later
-	if s, exists := index[r.From.Host]; exists {
-		index[r.From.Host] = append(s, r)
+	if s, exists := index[owner.FQDN()]; exists {
+		index[owner.FQDN()] = append(s, r)
 		return nil
 	}
-	index[r.From.Host] = []Rewrite{r}
+	index[owner.FQDN()] = []Rewrite{r}
 
 	return nil
 }
 
-func List(hosts ...string) []Rewrite {
+func List(owner Owner) []Rewrite {
 	lock.RLock()
 
-	result := []Rewrite{}
-	for _, host := range hosts {
-		if match, exists := index[host]; exists {
-			result = append(result, match...)
-		}
-	}
+	match, _ := index[owner.FQDN()]
 
 	lock.RUnlock()
-	return result
+	return match
 }
 
-func Remove(d Direction) {
+func Remove(owner Owner, d Direction) {
 	lock.Lock()
 	defer lock.Unlock()
 

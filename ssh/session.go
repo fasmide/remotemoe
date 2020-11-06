@@ -70,6 +70,8 @@ func (s *Session) Handle() {
 	// router.Remove will remove this session only if it is the currently active one
 	router.Remove(s)
 
+	// 
+	
 	// No reason to keep the timer active
 	s.DisableTimeout()
 }
