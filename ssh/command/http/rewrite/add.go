@@ -36,16 +36,29 @@ func Add(r router.Routable) *cobra.Command {
 				return fmt.Errorf("unable to parse match: %w", err)
 			}
 
-			// scheme and port must be set
+			// port and scheme from flags
 			flags := cmd.LocalFlags()
+
+			// scheme
 			scheme, err := flags.GetString("scheme")
 			if err != nil {
 				return fmt.Errorf("scheme flag error: %w", err)
 			}
 
+			// incase scheme is empty i.e. not set, use scheme from url
+			if scheme == "" {
+				scheme = m.Scheme
+			}
+
+			// port
 			port, err := flags.GetString("port")
 			if err != nil {
 				return fmt.Errorf("port flag error: %w", err)
+			}
+
+			// incase port is empty i.e. not set, use port from url
+			if port == "" {
+				port = m.Port
 			}
 
 			rewrite := http.Rewrite{
@@ -66,8 +79,8 @@ func Add(r router.Routable) *cobra.Command {
 		Args: cobra.ExactArgs(1),
 	}
 
-	c.Flags().StringP("scheme", "s", "http", "scheme to be used upstream")
-	c.Flags().StringP("port", "p", "80", "port to be used upstream")
+	c.Flags().StringP("scheme", "s", "", "scheme to be used upstream")
+	c.Flags().StringP("port", "p", "", "port to be used upstream")
 
 	return c
 
