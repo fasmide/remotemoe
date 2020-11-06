@@ -54,7 +54,7 @@ func Add(r router.Routable) *cobra.Command {
 				Port:   port,
 			}
 
-			err = http.Add(rewrite)
+			err = http.Add(r, rewrite)
 			if err != nil {
 				return fmt.Errorf("unable to add match to http router: %w", err)
 			}

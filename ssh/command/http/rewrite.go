@@ -19,7 +19,7 @@ func Rewrite(session router.Routable) *cobra.Command {
 
 	c.AddCommand(rewrite.Add(session))
 	c.AddCommand(rewrite.List(session))
-	c.AddCommand(rewrite.Remove())
+	c.AddCommand(rewrite.Remove(session))
 
 	return c
 }

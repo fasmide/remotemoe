@@ -18,6 +18,9 @@ type Rewrite struct {
 	// upstream
 	Scheme string
 	Port   string
+
+	// owner is compared against when removing rewrites
+	owner string
 }
 
 type Direction struct {
@@ -56,6 +59,9 @@ func init() {
 
 // Add adds a rewrite to this owners rewrites
 func Add(owner Owner, r Rewrite) error {
+	// ensure owner is set to the current user
+	r.owner = owner.FQDN()
+
 	lock.Lock()
 	defer lock.Unlock()
 
@@ -82,23 +88,33 @@ func List(owner Owner) []Rewrite {
 	match, _ := index[owner.FQDN()]
 
 	lock.RUnlock()
+
 	return match
 }
 
-func Remove(owner Owner, d Direction) {
+func Remove(owner Owner, d Direction) error {
 	lock.Lock()
 	defer lock.Unlock()
+
+	m, exists := matches[d]
+	if !exists {
+		return fmt.Errorf("match %s does not exist", d)
+	}
+
+	if m.owner != owner.FQDN() {
+		return fmt.Errorf("match %s does not belong to the current user", d)
+	}
 
 	// remove directon from matches
 	delete(matches, d)
 
 	// remove from index
-	s := index[d.Host]
+	s := index[owner.FQDN()]
 
 	// if this is the last entry in the index - remove the index entirely
 	if len(s) == 1 {
 		delete(index, d.Host)
-		return
+		return nil
 	}
 
 	// search for the direction and chop it off the slice
@@ -110,6 +126,25 @@ func Remove(owner Owner, d Direction) {
 		}
 	}
 
+	return nil
+}
+
+func RemoveAll(owner Owner) int {
+	lock.Lock()
+	defer lock.Unlock()
+
+	all, exists := index[owner.FQDN()]
+	if !exists {
+		return 0
+	}
+
+	delete(index, owner.FQDN())
+
+	for _, r := range all {
+		delete(matches, r.From)
+	}
+
+	return len(all)
 }
 
 func director(r *http.Request) {

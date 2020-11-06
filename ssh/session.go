@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/fasmide/remotemoe/http"
 	"github.com/fasmide/remotemoe/router"
 	"github.com/fasmide/remotemoe/services"
 	"github.com/fatih/color"
@@ -70,8 +71,9 @@ func (s *Session) Handle() {
 	// router.Remove will remove this session only if it is the currently active one
 	router.Remove(s)
 
-	// 
-	
+	// http.RemoveAll will remove all http rules this session may have set up
+	http.RemoveAll(s)
+
 	// No reason to keep the timer active
 	s.DisableTimeout()
 }
