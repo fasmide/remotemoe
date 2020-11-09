@@ -130,10 +130,6 @@ func validateURL(u *url.URL, creator router.Routable) error {
 		}
 	}
 
-	err := validateScheme(u.Scheme)
-	if err != nil {
-		return fmt.Errorf("unknown scheme: %w", err)
-	}
 	return validateScheme(u.Scheme)
 }
 

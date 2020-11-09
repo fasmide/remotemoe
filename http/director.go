@@ -12,6 +12,7 @@ import (
 	"github.com/fasmide/remotemoe/services"
 )
 
+// Rewrite defines a direction and a Scheme and Port to rewrite
 type Rewrite struct {
 	From Direction
 
@@ -23,16 +24,19 @@ type Rewrite struct {
 	owner string
 }
 
+// Direction is the composite key used when searching for rewrites for incoming http requests
 type Direction struct {
 	Scheme string
 	Host   string
 	Port   string
 }
 
+// Owner is able to identify it self with its fully qualified domain name
 type Owner interface {
 	FQDN() string
 }
 
+// FromURL parses an url.URL and stores values in the direction
 func (d *Direction) FromURL(u *url.URL) error {
 	host, port, err := net.SplitHostPort(u.Host)
 	if err != nil {
@@ -82,6 +86,7 @@ func Add(owner Owner, r Rewrite) error {
 	return nil
 }
 
+// List returns all rewrites created by an Owner
 func List(owner Owner) []Rewrite {
 	lock.RLock()
 
@@ -92,6 +97,7 @@ func List(owner Owner) []Rewrite {
 	return match
 }
 
+// Remove removes a rewrite from an owner
 func Remove(owner Owner, d Direction) error {
 	lock.Lock()
 	defer lock.Unlock()
@@ -129,6 +135,7 @@ func Remove(owner Owner, d Direction) error {
 	return nil
 }
 
+// RemoveAll removes all rewrites an owner has created
 func RemoveAll(owner Owner) int {
 	lock.Lock()
 	defer lock.Unlock()
