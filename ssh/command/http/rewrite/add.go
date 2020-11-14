@@ -79,8 +79,8 @@ func Add(r router.Routable) *cobra.Command {
 		Args: cobra.ExactArgs(1),
 	}
 
-	c.Flags().StringP("scheme", "s", "", "scheme to be used upstream")
-	c.Flags().StringP("port", "p", "", "port to be used upstream")
+	c.Flags().StringP("to-scheme", "s", "", "scheme to be used upstream")
+	c.Flags().StringP("to-port", "p", "", "port to be used upstream")
 
 	return c
 
