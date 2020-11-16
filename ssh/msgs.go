@@ -33,3 +33,21 @@ type tcpIPForward struct {
 type execCommand struct {
 	Command string
 }
+
+// https://tools.ietf.org/html/rfc4254#section-6.2
+type ptyRequest struct {
+	Type        string // e.g. vt100
+	Width       uint32
+	Height      uint32
+	PixelWidth  uint32
+	PixelHeight uint32
+	Modes       string
+}
+
+// https://tools.ietf.org/html/rfc4254#section-6.7
+type windowChange struct {
+	Width       uint32
+	Height      uint32
+	PixelWidth  uint32
+	PixelHeight uint32
+}
