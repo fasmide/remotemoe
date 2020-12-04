@@ -297,7 +297,7 @@ func (s *Session) DialContext(ctx context.Context, network, address string) (net
 		return nil, fmt.Errorf("unable to figure out host and port: %w", err)
 	}
 
-	p, err := strconv.Atoi(port)
+	p, err := strconv.ParseUint(port, 10, 32)
 	if err != nil {
 		return nil, fmt.Errorf("unable to convert port number to int: %w", err)
 	}
