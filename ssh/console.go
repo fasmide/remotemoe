@@ -177,6 +177,10 @@ func (c *Console) Accept(channelRequest ssh.NewChannel) error {
 			select {
 			case cmd, ok := <-commands:
 				if !ok {
+					// the user should get a proper exit-code when closing the commandline manually
+					channel.SendRequest("exit-status", false, ssh.Marshal(struct{ C uint32 }{0}))
+
+					// break go routine
 					return
 				}
 
