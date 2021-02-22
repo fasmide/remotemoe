@@ -1,6 +1,5 @@
 Stuff that needs doing
-* clean up after http rewrites
-* proper ssh exit messages
+* maybe dont allow acme to create certificate requests for hosts that do not provide https
 * a windows way of keeping the tunnel open
     * it seems that actural windows services will require some amount of thirdparty software to wrap ssh.exe
     * the task scheduler does provide stuff like "On boot", "repeat indefinitely", and is able deal with already running instances

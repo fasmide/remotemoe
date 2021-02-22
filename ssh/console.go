@@ -25,6 +25,9 @@ func (c *Console) Accept(channelRequest ssh.NewChannel) error {
 	// commands comes from "exec" requests or when a user enters them into the shell
 	commands := make(chan string)
 
+	// setup this sessions terminal
+	term := terminal.NewTerminal(channel, "$ ")
+
 	// handle "shell", "pty-req" and "exec" requests
 	go func(in <-chan *ssh.Request) {
 		for req := range in {
@@ -44,13 +47,39 @@ func (c *Console) Accept(channelRequest ssh.NewChannel) error {
 				continue
 			}
 
-			// reply false to everything other then shell and pty-req
-			req.Reply(req.Type == "shell" || req.Type == "pty-req", nil)
+			// the pty-req has information about the client terminal
+			// we need the initial width and height of the terminal
+			if req.Type == "pty-req" {
+				ptyReq := ptyRequest{}
+				err := ssh.Unmarshal(req.Payload, &ptyReq)
+				if err != nil {
+					log.Printf("unable to parse ssh pty-request: %s", err)
+					req.Reply(false, nil)
+					continue
+				}
+
+				term.SetSize(int(ptyReq.Width), int(ptyReq.Height))
+				continue
+			}
+
+			// look for "window-change" requests - these should update the terminal size
+			if req.Type == "window-change" {
+				wcReq := windowChange{}
+				err := ssh.Unmarshal(req.Payload, &wcReq)
+				if err != nil {
+					log.Printf("unable to parse ssh window-change request: %s", err)
+					req.Reply(false, nil)
+					continue
+				}
+
+				term.SetSize(int(wcReq.Width), int(wcReq.Height))
+				continue
+			}
+
+			// reply false to everything other then shell
+			req.Reply(req.Type == "shell", nil)
 		}
 	}(requests)
-
-	// setup this sessions terminal
-	term := terminal.NewTerminal(channel, "$ ")
 
 	// autocomplete and the actural command execution cannot access
 	// the command at the same time
@@ -148,6 +177,10 @@ func (c *Console) Accept(channelRequest ssh.NewChannel) error {
 			select {
 			case cmd, ok := <-commands:
 				if !ok {
+					// the user should get a proper exit-code when closing the commandline manually
+					channel.SendRequest("exit-status", false, ssh.Marshal(struct{ C uint32 }{0}))
+
+					// break go routine
 					return
 				}
 
