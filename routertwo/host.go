@@ -32,4 +32,8 @@ func (h *Host) DialContext(ctx context.Context, network, address string) (net.Co
 	return h.Routable.DialContext(ctx, network, address)
 }
 
-func (h *Host) Replaced() {}
+func (h *Host) Replaced() {
+	if h.Routable != nil {
+		h.Routable.Replaced()
+	}
+}

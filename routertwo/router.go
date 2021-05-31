@@ -128,12 +128,17 @@ func (r *Router) Online(rtbl Routable) (bool, error) {
 	defer r.finish()
 
 	var host *Host
+	var replaced bool
 	oldRoute, exists := (*next)[rtbl.FQDN()]
 	if exists { // route exists
 		var ok bool
 		host, ok = oldRoute.(*Host)
 		if ok { // route is host
 			go host.Replaced()
+			if host.Routable != nil {
+				replaced = true
+			}
+
 			host = &Host{
 				Routable: rtbl,
 				Name:     rtbl.FQDN(),
@@ -171,12 +176,12 @@ func (r *Router) Online(rtbl Routable) (bool, error) {
 
 	(*old)[rtbl.FQDN()] = host
 
-	return exists, nil
+	return replaced, nil
 }
 
 // Offline removes the routable from a host
 func (r *Router) Offline(d Routable) {
-	_, _ = r.begin()
+	next, old := r.begin()
 	defer r.finish()
 
 	// we should be able to find this routable
@@ -206,8 +211,21 @@ func (r *Router) Offline(d Routable) {
 		log.Printf("router: unable to update host as it went offline: %s", err)
 	}
 
-	// we dont need to change lists - just set the Routable on the host to nil
-	host.Routable = nil
+	// we have to create a new Host and have the old one garbage collected
+	host = &Host{
+		Routable: nil,
+		Name:     host.Name,
+		LastSeen: host.LastSeen,
+		Created:  host.Created,
+	}
+
+	// do the exchange
+	(*next)[host.Name] = host
+
+	r.exchange(next)
+
+	(*old)[host.Name] = host
+
 }
 
 func (r *Router) AddName(n *NamedRoute) error {
