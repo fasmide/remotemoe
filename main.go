@@ -11,11 +11,21 @@ import (
 )
 
 func main() {
-	flag.Parse()
+	routerData := "routerdata"
 
-	err := router.Initialize()
+	if os.Getenv("STATE_DIRECTORY") != "" {
+		routerData = path.Join(os.Getenv("STATE_DIRECTORY"), "routerdata")
+	}
+
+	err := os.Mkdir(routerData, 0700)
+
+	// we are not going to be stopping on ErrExists errors
+	if errors.Is(err, os.ErrExist) {
+		err = nil
+	}
+
 	if err != nil {
-		log.Fatalf("could not initialize router: %s", err)
+		log.Fatalf("unable to make directory for router data: %s", err)
 	}
 
 	proxy := &http.Proxy{}
