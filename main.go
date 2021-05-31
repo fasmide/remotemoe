@@ -1,11 +1,13 @@
 package main
 
 import (
-	"flag"
+	"errors"
 	"log"
+	"os"
+	"path"
 
 	"github.com/fasmide/remotemoe/http"
-	"github.com/fasmide/remotemoe/router"
+	"github.com/fasmide/remotemoe/routertwo"
 	"github.com/fasmide/remotemoe/services"
 	"github.com/fasmide/remotemoe/ssh"
 )
@@ -28,10 +30,12 @@ func main() {
 		log.Fatalf("unable to make directory for router data: %s", err)
 	}
 
-	proxy := &http.Proxy{}
-	proxy.Initialize()
+	router, err := routertwo.NewRouter(routerData)
 
-	server, err := http.NewServer()
+	proxy := &http.Proxy{}
+	proxy.Initialize(router)
+
+	server, err := http.NewServer(router.Exists)
 	if err != nil {
 		panic(err)
 	}
@@ -46,7 +50,7 @@ func main() {
 		log.Fatalf("cannot get default ssh config: %s", err)
 	}
 
-	sshServer := &ssh.Server{Config: sshConfig}
+	sshServer := &ssh.Server{Config: sshConfig, Router: router}
 
 	services.Serve("ssh", sshServer)
 

@@ -7,14 +7,13 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strings"
+	"path"
 
-	"github.com/fasmide/remotemoe/router"
 	"golang.org/x/crypto/acme/autocert"
 )
 
 // NewServer returns a HTTP(S) capable server
-func NewServer() (*http.Server, error) {
+func NewServer(hostExists autocert.HostPolicy) (*http.Server, error) {
 	cache, err := acmeCache()
 	if err != nil {
 		return nil, fmt.Errorf("unable to get acme cache: %w", err)
@@ -23,7 +22,7 @@ func NewServer() (*http.Server, error) {
 	m := &autocert.Manager{
 		Cache:      cache,
 		Prompt:     autocert.AcceptTOS,
-		HostPolicy: router.Exists,
+		HostPolicy: hostExists,
 	}
 
 	return &http.Server{

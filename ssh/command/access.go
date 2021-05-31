@@ -1,19 +1,19 @@
 package command
 
 import (
-	"github.com/fasmide/remotemoe/router"
+	"github.com/fasmide/remotemoe/routertwo"
 	"github.com/fasmide/remotemoe/services"
 	"github.com/spf13/cobra"
 )
 
 // ForwardingRoutable is an interface for things that are routable and provides forwards
 type ForwardingRoutable interface {
-	router.Routable
+	routertwo.Routable
 	Forwarding
 }
 
 // Access returns a *cobra.Command which tells the user how to access services
-func Access(fr ForwardingRoutable) *cobra.Command {
+func Access(fr ForwardingRoutable, router *routertwo.Router) *cobra.Command {
 	return &cobra.Command{
 		Use:   "access",
 		Short: "How to access forwarded services",
@@ -22,7 +22,7 @@ func Access(fr ForwardingRoutable) *cobra.Command {
 			if err != nil {
 				cmd.Printf("unable to lookup your custom names, try again later...\n")
 				// we should let the command continue but with an empty slice
-				namedRoutes = make([]router.NamedRoute, 0, 0)
+				namedRoutes = make([]routertwo.NamedRoute, 0, 0)
 			}
 
 			forwards := fr.Forwards()

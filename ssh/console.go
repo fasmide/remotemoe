@@ -84,7 +84,7 @@ func (c *Console) Accept(channelRequest ssh.NewChannel) error {
 	// autocomplete and the actural command execution cannot access
 	// the command at the same time
 	var lock sync.Mutex
-	main := DefaultCmd(c.session)
+	main := DefaultCmd(c.session, c.session.router)
 	main.SetOut(term)
 
 	term.AutoCompleteCallback = func(line string, pos int, key rune) (newLine string, newPos int, ok bool) {
