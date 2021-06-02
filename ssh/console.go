@@ -86,6 +86,7 @@ func (c *Console) Accept(channelRequest ssh.NewChannel) error {
 	var lock sync.Mutex
 	main := DefaultCmd(c.session, c.session.router)
 	main.SetOut(term)
+	main.SetErr(term)
 
 	term.AutoCompleteCallback = func(line string, pos int, key rune) (newLine string, newPos int, ok bool) {
 		lock.Lock()
