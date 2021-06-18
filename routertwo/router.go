@@ -82,16 +82,18 @@ func NewRouter(dbPath string) (*Router, error) {
 			return fmt.Errorf("unable to decode json: %w", err)
 		}
 
-		r, err := i.Wake(r)
+		routable, err := i.Wake(r)
 		if err != nil {
 			return fmt.Errorf("json format error: %w", err)
 		}
 
-		// to ensure namedroutes are fully brougt back to life,
-		// they will need a reference to this router
+		a[routable.FQDN()] = routable
+		b[routable.FQDN()] = routable
 
-		a[r.FQDN()] = r
-		b[r.FQDN()] = r
+		nroute, ok := routable.(*NamedRoute)
+		if ok {
+			r.index(nroute)
+		}
 
 		return nil
 	})
