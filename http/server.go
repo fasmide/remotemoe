@@ -7,14 +7,13 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strings"
+	"path"
 
-	"github.com/fasmide/remotemoe/router"
 	"golang.org/x/crypto/acme/autocert"
 )
 
 // NewServer returns a HTTP(S) capable server
-func NewServer() (*http.Server, error) {
+func NewServer(hostExists autocert.HostPolicy) (*http.Server, error) {
 	cache, err := acmeCache()
 	if err != nil {
 		return nil, fmt.Errorf("unable to get acme cache: %w", err)
@@ -23,7 +22,7 @@ func NewServer() (*http.Server, error) {
 	m := &autocert.Manager{
 		Cache:      cache,
 		Prompt:     autocert.AcceptTOS,
-		HostPolicy: router.Exists,
+		HostPolicy: hostExists,
 	}
 
 	return &http.Server{
@@ -42,19 +41,13 @@ func withLocalAddr(ctx context.Context, c net.Conn) context.Context {
 // acmeCache tries to find a systemd created state directory
 // and oterwise defaults to $(pwd)/acme-secrets
 func acmeCache() (autocert.Cache, error) {
-	dirs := strings.FieldsFunc(
-		os.Getenv("STATE_DIRECTORY"),
-		func(r rune) bool {
-			return r == ':'
-		},
-	)
+	dir := "acme-secrets"
 
-	// dirs[0] is the acme directory
-	if len(dirs) > 0 {
-		return autocert.DirCache(dirs[0]), nil
+	if os.Getenv("STATE_DIRECTORY") != "" {
+		dir = path.Join(os.Getenv("STATE_DIRECTORY"), "acme-secrets")
 	}
 
-	err := os.Mkdir("acme-secrets", 0600)
+	err := os.Mkdir(dir, 0700)
 
 	// we are not going to be stopping on ErrExists errors
 	if errors.Is(err, os.ErrExist) {
@@ -64,5 +57,5 @@ func acmeCache() (autocert.Cache, error) {
 		return nil, fmt.Errorf("unable to make directory for acme secrets: %w", err)
 	}
 
-	return autocert.DirCache("acme-secrets"), nil
+	return autocert.DirCache(dir), nil
 }

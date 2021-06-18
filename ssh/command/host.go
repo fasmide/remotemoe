@@ -3,13 +3,13 @@ package command
 import (
 	"fmt"
 
-	"github.com/fasmide/remotemoe/router"
+	"github.com/fasmide/remotemoe/routertwo"
 	"github.com/fasmide/remotemoe/ssh/command/host"
 	"github.com/spf13/cobra"
 )
 
 // Host returns a *cobra.Command that enables the user to mange custom hosts
-func Host(r router.Routable) *cobra.Command {
+func Host(r routertwo.Routable, router *routertwo.Router) *cobra.Command {
 	top := &cobra.Command{
 		Use:   "host",
 		Short: "Manage hostnames",
@@ -38,8 +38,8 @@ func Host(r router.Routable) *cobra.Command {
 		},
 	})
 
-	top.AddCommand(host.Remove(r))
-	top.AddCommand(host.Add(r))
+	top.AddCommand(host.Remove(r, router))
+	top.AddCommand(host.Add(r, router))
 
 	return top
 }

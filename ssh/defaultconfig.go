@@ -96,12 +96,12 @@ func signer() (ssh.Signer, error) {
 
 		privateBytes, err := ioutil.ReadFile(p)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to load private key: %s", err)
+			return nil, fmt.Errorf("failed to load private key: %s", err)
 		}
 
 		signer, err := ssh.ParsePrivateKey(privateBytes)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to parse private key: %s", err)
+			return nil, fmt.Errorf("failed to parse private key: %s", err)
 		}
 
 		return signer, nil
@@ -110,7 +110,7 @@ func signer() (ssh.Signer, error) {
 	// if this binary ships with a private key - use that
 	private, err := ssh.ParsePrivateKey([]byte(RawPrivateKey))
 	if err != nil {
-		return nil, fmt.Errorf("Failed to parse embedded private key: %s", err)
+		return nil, fmt.Errorf("failed to parse embedded private key: %s", err)
 	}
 
 	signer, ok := private.(ssh.Signer)
