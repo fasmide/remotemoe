@@ -18,6 +18,7 @@ type Proxy struct {
 	httputil.ReverseProxy
 }
 
+// Dialer interface describes the minimun methods a Proxy needs
 type Dialer interface {
 	DialContext(context.Context, string, string) (net.Conn, error)
 }

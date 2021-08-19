@@ -20,10 +20,12 @@ type Host struct {
 	Created  time.Time `json:"created"`
 }
 
+// FQDN returns the fully qualified domain name for this host
 func (h *Host) FQDN() string {
 	return h.Name
 }
 
+// DialContext dials this host
 func (h *Host) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
 	if h.Routable == nil {
 		return nil, ErrOffline
@@ -32,6 +34,7 @@ func (h *Host) DialContext(ctx context.Context, network, address string) (net.Co
 	return h.Routable.DialContext(ctx, network, address)
 }
 
+// Replaced indicates to this host, that it have been replaced
 func (h *Host) Replaced() {
 	if h.Routable != nil {
 		h.Routable.Replaced()

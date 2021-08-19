@@ -46,6 +46,7 @@ type Router struct {
 	nameIndex map[string][]*NamedRoute
 }
 
+// NewRouter initializes a new Router with a given path
 func NewRouter(dbPath string) (*Router, error) {
 	// make room for a and b lists
 	a := make(map[string]Routable)
@@ -123,7 +124,7 @@ func (r *Router) DialContext(ctx context.Context, network, address string) (net.
 	return d.DialContext(ctx, network, address)
 }
 
-// Replace should only be used by peers, e.g. ssh clients which proved
+// Online should only be used by peers, e.g. ssh clients which proved
 // by authentication that they do infact have the private key for their FQDN
 func (r *Router) Online(rtbl Routable) (bool, error) {
 	next, old := r.begin()
@@ -230,6 +231,7 @@ func (r *Router) Offline(d Routable) {
 
 }
 
+// AddName adds a *NamedRoute to the router
 func (r *Router) AddName(n *NamedRoute) error {
 	next, old := r.begin()
 	defer r.finish()
@@ -371,6 +373,7 @@ func (r *Router) Find(n string) (Routable, bool) {
 	return d, exists
 }
 
+// Exists returns an error if a given hostname does not exist
 func (r *Router) Exists(_ context.Context, s string) error {
 	r.RLock()
 	_, exists := (*r.active)[s]
