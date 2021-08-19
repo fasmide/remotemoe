@@ -31,6 +31,9 @@ func main() {
 	}
 
 	router, err := routertwo.NewRouter(routerData)
+	if err != nil {
+		panic(err)
+	}
 
 	proxy := &http.Proxy{}
 	proxy.Initialize(router)
