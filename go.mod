@@ -3,12 +3,13 @@ module github.com/fasmide/remotemoe
 go 1.14
 
 require (
-	github.com/asdine/storm/v3 v3.2.0
-	github.com/fatih/color v1.9.0
-	github.com/spf13/cobra v1.0.0
-	github.com/spf13/pflag v1.0.3
-	go.etcd.io/bbolt v1.3.5 // indirect
-	golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9
-	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b // indirect
-	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae // indirect
+	github.com/fatih/color v1.12.0
+	github.com/mattn/go-isatty v0.0.13 // indirect
+	github.com/spf13/cobra v1.1.3
+	github.com/spf13/pflag v1.0.5
+	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
+	golang.org/x/net v0.0.0-20210525063256-abc453219eb5 // indirect
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+	golang.org/x/sys v0.0.0-20210601080250-7ecdf8ef093b // indirect
+	golang.org/x/term v0.0.0-20210503060354-a79de5458b56
 )

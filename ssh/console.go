@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"golang.org/x/crypto/ssh"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 )
 
 // Console represents a terminal and handles commands
@@ -26,7 +26,7 @@ func (c *Console) Accept(channelRequest ssh.NewChannel) error {
 	commands := make(chan string)
 
 	// setup this sessions terminal
-	term := terminal.NewTerminal(channel, "$ ")
+	term := term.NewTerminal(channel, "$ ")
 
 	// handle "shell", "pty-req" and "exec" requests
 	go func(in <-chan *ssh.Request) {
@@ -84,8 +84,9 @@ func (c *Console) Accept(channelRequest ssh.NewChannel) error {
 	// autocomplete and the actural command execution cannot access
 	// the command at the same time
 	var lock sync.Mutex
-	main := DefaultCmd(c.session)
+	main := DefaultCmd(c.session, c.session.router)
 	main.SetOut(term)
+	main.SetErr(term)
 
 	term.AutoCompleteCallback = func(line string, pos int, key rune) (newLine string, newPos int, ok bool) {
 		lock.Lock()

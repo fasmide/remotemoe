@@ -3,12 +3,12 @@ package host
 import (
 	"fmt"
 
-	"github.com/fasmide/remotemoe/router"
+	"github.com/fasmide/remotemoe/routertwo"
 	"github.com/spf13/cobra"
 )
 
 // Remove removes custom hostnames from the ssh session
-func Remove(r router.Routable) *cobra.Command {
+func Remove(r routertwo.Routable, router *routertwo.Router) *cobra.Command {
 	c := &cobra.Command{
 		Use:   "remove host.domain.tld [host2.domain.tld] ...",
 		Short: "Remove hostname(s)",
@@ -28,7 +28,7 @@ func Remove(r router.Routable) *cobra.Command {
 		},
 	}
 
-	c.AddCommand(RemoveAll(r))
+	c.AddCommand(RemoveAll(r, router))
 
 	return c
 }

@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/fasmide/remotemoe/routertwo"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -20,6 +21,8 @@ func init() {
 type Server struct {
 	// Config is the ssh serverconfig
 	Config *ssh.ServerConfig
+
+	Router *routertwo.Router
 }
 
 // Serve will accept ssh connections
@@ -55,6 +58,7 @@ func (s *Server) accept(c net.Conn) {
 		secureConn:      conn,
 		channelRequests: chans,
 		requests:        reqs,
+		router:          s.Router,
 	}
 
 	session.Handle()

@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net"
@@ -9,7 +10,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/fasmide/remotemoe/router"
 	"github.com/fasmide/remotemoe/services"
 )
 
@@ -18,9 +18,14 @@ type Proxy struct {
 	httputil.ReverseProxy
 }
 
+// Dialer interface describes the minimun methods a Proxy needs
+type Dialer interface {
+	DialContext(context.Context, string, string) (net.Conn, error)
+}
+
 // Initialize sets up this proxy's transport to dial though
 // Router instead of doing classic network dials
-func (h *Proxy) Initialize() {
+func (h *Proxy) Initialize(router Dialer) {
 	transport := &http.Transport{
 		DialContext:           router.DialContext,
 		ForceAttemptHTTP2:     true,
