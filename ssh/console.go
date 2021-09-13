@@ -44,6 +44,7 @@ func (c *Console) Accept(channelRequest ssh.NewChannel) error {
 				// queue command which will be executed later
 				// when the client opens a shell
 				commands <- exec.Command
+				close(commands)
 				continue
 			}
 
@@ -59,6 +60,18 @@ func (c *Console) Accept(channelRequest ssh.NewChannel) error {
 				}
 
 				term.SetSize(int(ptyReq.Width), int(ptyReq.Height))
+
+				// read commands off the terminal and put them into commands channel
+				go func() {
+					for {
+						line, err := term.ReadLine()
+						if err != nil {
+							close(commands)
+							break
+						}
+						commands <- line
+					}
+				}()
 				continue
 			}
 
@@ -84,6 +97,8 @@ func (c *Console) Accept(channelRequest ssh.NewChannel) error {
 	// autocomplete and the actural command execution cannot access
 	// the command at the same time
 	var lock sync.Mutex
+
+	// top level cobra command
 	main := DefaultCmd(c.session, c.session.router)
 	main.SetOut(term)
 	main.SetErr(term)
@@ -159,18 +174,6 @@ func (c *Console) Accept(channelRequest ssh.NewChannel) error {
 
 		return prefix + postfix, pos, false
 	}
-
-	// read commands off the terminal and put them into commands channel
-	go func() {
-		for {
-			line, err := term.ReadLine()
-			if err != nil {
-				close(commands)
-				break
-			}
-			commands <- line
-		}
-	}()
 
 	go func() {
 		defer channel.Close()
