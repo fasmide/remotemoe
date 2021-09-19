@@ -113,11 +113,6 @@ func signer() (ssh.Signer, error) {
 		return nil, fmt.Errorf("failed to parse embedded private key: %s", err)
 	}
 
-	signer, ok := private.(ssh.Signer)
-	if !ok {
-		return nil, fmt.Errorf("cannot cast %T to ssh.Signer", private)
-	}
-
-	return signer, nil
+	return private, nil
 
 }
