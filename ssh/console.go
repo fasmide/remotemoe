@@ -28,62 +28,11 @@ func (c *Console) Accept(channelRequest ssh.NewChannel) error {
 	// setup this sessions terminal
 	term := term.NewTerminal(channel, "$ ")
 
-	// handle "shell", "pty-req" and "exec" requests
-	go func(in <-chan *ssh.Request) {
-		for req := range in {
-			if req.Type == "exec" {
-				// parse exec request
-				exec := execCommand{}
-				err := ssh.Unmarshal(req.Payload, &exec)
-				if err != nil {
-					log.Printf("unable to parse exec payload: %s", err)
-					req.Reply(false, nil)
-					continue
-				}
-
-				// queue command which will be executed later
-				// when the client opens a shell
-				commands <- exec.Command
-				continue
-			}
-
-			// the pty-req has information about the client terminal
-			// we need the initial width and height of the terminal
-			if req.Type == "pty-req" {
-				ptyReq := ptyRequest{}
-				err := ssh.Unmarshal(req.Payload, &ptyReq)
-				if err != nil {
-					log.Printf("unable to parse ssh pty-request: %s", err)
-					req.Reply(false, nil)
-					continue
-				}
-
-				term.SetSize(int(ptyReq.Width), int(ptyReq.Height))
-				continue
-			}
-
-			// look for "window-change" requests - these should update the terminal size
-			if req.Type == "window-change" {
-				wcReq := windowChange{}
-				err := ssh.Unmarshal(req.Payload, &wcReq)
-				if err != nil {
-					log.Printf("unable to parse ssh window-change request: %s", err)
-					req.Reply(false, nil)
-					continue
-				}
-
-				term.SetSize(int(wcReq.Width), int(wcReq.Height))
-				continue
-			}
-
-			// reply false to everything other then shell
-			req.Reply(req.Type == "shell", nil)
-		}
-	}(requests)
-
 	// autocomplete and the actural command execution cannot access
 	// the command at the same time
 	var lock sync.Mutex
+
+	// top level cobra command
 	main := DefaultCmd(c.session, c.session.router)
 	main.SetOut(term)
 	main.SetErr(term)
@@ -160,17 +109,88 @@ func (c *Console) Accept(channelRequest ssh.NewChannel) error {
 		return prefix + postfix, pos, false
 	}
 
-	// read commands off the terminal and put them into commands channel
-	go func() {
-		for {
-			line, err := term.ReadLine()
-			if err != nil {
-				close(commands)
-				break
+	// from https://datatracker.ietf.org/doc/html/rfc4254#section-6.5
+	//   Once the session has been set up, a program is started at the remote
+	//   end.  The program can be a shell, an application program, or a
+	//   subsystem with a host-independent name.  Only one of these requests
+	//   can succeed per channel.
+	// we must ensure only one of these is accepted pr channel
+	var once sync.Once
+
+	// handle "shell", "pty-req" and "exec" requests
+	go func(in <-chan *ssh.Request) {
+		for req := range in {
+			if req.Type == "exec" {
+				// parse exec request
+				once.Do(func() {
+					exec := execCommand{}
+					err := ssh.Unmarshal(req.Payload, &exec)
+					if err != nil {
+						log.Printf("unable to parse exec payload: %s", err)
+						req.Reply(false, nil)
+						return
+					}
+
+					// queue command which will be executed later
+					// when the client opens a shell
+					commands <- exec.Command
+					close(commands)
+				})
+				continue
 			}
-			commands <- line
+
+			if req.Type == "shell" {
+				// read commands off the terminal and put them into commands channel
+				once.Do(func() {
+					go func() {
+						for {
+							line, err := term.ReadLine()
+							if err != nil {
+								close(commands)
+								break
+							}
+							commands <- line
+						}
+					}()
+					req.Reply(true, nil)
+				})
+				continue
+			}
+
+			// the pty-req has information about the client terminal
+			// we need the initial width and height of the terminal
+			if req.Type == "pty-req" {
+				ptyReq := ptyRequest{}
+				err := ssh.Unmarshal(req.Payload, &ptyReq)
+				if err != nil {
+					log.Printf("unable to parse ssh pty-request: %s", err)
+					req.Reply(false, nil)
+					continue
+				}
+
+				term.SetSize(int(ptyReq.Width), int(ptyReq.Height))
+				req.Reply(true, nil)
+				continue
+			}
+
+			// look for "window-change" requests - these should update the terminal size
+			if req.Type == "window-change" {
+				wcReq := windowChange{}
+				err := ssh.Unmarshal(req.Payload, &wcReq)
+				if err != nil {
+					log.Printf("unable to parse ssh window-change request: %s", err)
+					req.Reply(false, nil)
+					continue
+				}
+
+				term.SetSize(int(wcReq.Width), int(wcReq.Height))
+				continue
+			}
+
+			// reply false to everything else
+			req.Reply(false, nil)
 		}
-	}()
+	}(requests)
 
 	go func() {
 		defer channel.Close()
