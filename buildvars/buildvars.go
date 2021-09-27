@@ -1,6 +1,7 @@
 package buildvars
 
-const GitHash = "N/A"
-const GitDate = "N/A"
-const GitBranch = "N/A"
-const GitRepository = "N/A"
+var GitCommit = "N/A"
+var GitCommitDate = "N/A"
+var GitBranch = "N/A"
+var GitRepository = "N/A"
+var GitPorcelain = ""
