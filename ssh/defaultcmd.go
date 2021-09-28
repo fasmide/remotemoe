@@ -33,6 +33,7 @@ func DefaultCmd(s *Session, r *routertwo.Router) *cobra.Command {
 	c.AddCommand(command.Host(s, r))
 	c.AddCommand(command.Access(s, r))
 	c.AddCommand(command.Whoami(s))
+	c.AddCommand(command.Version())
 
 	return c
 }
