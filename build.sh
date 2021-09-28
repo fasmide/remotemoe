@@ -14,3 +14,4 @@ go build "$@" \
   -X github.com/fasmide/remotemoe/buildvars.GitRepository=${GITREPOSITORY}
   -X 'github.com/fasmide/remotemoe/buildvars.GitPorcelain=${GITPORCELAIN}'" \
   .
+  
