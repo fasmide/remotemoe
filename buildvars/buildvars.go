@@ -1,7 +1,11 @@
 package buildvars
 
-var GitCommit = "N/A"
-var GitCommitDate = "N/A"
-var GitBranch = "N/A"
-var GitRepository = "N/A"
-var GitPorcelain = ""
+// Initialized should be set to "true" to indicate
+// buildvars have been initialized and should be displayed.
+var Initialized string
+
+var GitCommit string
+var GitCommitDate string
+var GitBranch string
+var GitRepository string
+var GitPorcelain string

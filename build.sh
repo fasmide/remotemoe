@@ -7,7 +7,8 @@ GITREPOSITORY=$(git config --get remote.origin.url)
 GITPORCELAIN=$(git status --porcelain)
 
 go build "$@" \
-  -ldflags "-X github.com/fasmide/remotemoe/buildvars.GitCommit=${GITHASH}
+  -ldflags "-X github.com/fasmide/remotemoe/buildvars.Initialized=true
+  -X github.com/fasmide/remotemoe/buildvars.GitCommit=${GITHASH}
   -X 'github.com/fasmide/remotemoe/buildvars.GitCommitDate=${GITDATE}' 
   -X github.com/fasmide/remotemoe/buildvars.GitBranch=${GITBRANCH}
   -X github.com/fasmide/remotemoe/buildvars.GitRepository=${GITREPOSITORY}
