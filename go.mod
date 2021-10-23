@@ -3,6 +3,7 @@ module github.com/fasmide/remotemoe
 go 1.14
 
 require (
+	github.com/fasmide/hostkeys v0.0.0-20211023164018-0a66d786b24e
 	github.com/fatih/color v1.13.0
 	github.com/mattn/go-colorable v0.1.11 // indirect
 	github.com/spf13/cobra v1.2.1
