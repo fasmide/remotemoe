@@ -27,6 +27,8 @@ func DefaultCmd(s *Session, r *routertwo.Router) *cobra.Command {
 		SilenceUsage: true,
 	}
 
+	c.CompletionOptions.DisableDefaultCmd = true
+
 	c.AddCommand(command.Firsttime())
 	c.AddCommand(command.Close(s))
 	c.AddCommand(command.Session(s))
