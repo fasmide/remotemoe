@@ -1,27 +1,44 @@
 package main
 
 import (
-	"flag"
+	"errors"
 	"log"
+	"os"
+	"path"
 
 	"github.com/fasmide/remotemoe/http"
-	"github.com/fasmide/remotemoe/router"
+	"github.com/fasmide/remotemoe/routertwo"
 	"github.com/fasmide/remotemoe/services"
 	"github.com/fasmide/remotemoe/ssh"
 )
 
 func main() {
-	flag.Parse()
+	routerData := "routerdata"
 
-	err := router.Initialize()
+	if os.Getenv("STATE_DIRECTORY") != "" {
+		routerData = path.Join(os.Getenv("STATE_DIRECTORY"), "routerdata")
+	}
+
+	err := os.Mkdir(routerData, 0700)
+
+	// we are not going to be stopping on ErrExists errors
+	if errors.Is(err, os.ErrExist) {
+		err = nil
+	}
+
 	if err != nil {
-		log.Fatalf("could not initialize router: %s", err)
+		log.Fatalf("unable to make directory for router data: %s", err)
+	}
+
+	router, err := routertwo.NewRouter(routerData)
+	if err != nil {
+		panic(err)
 	}
 
 	proxy := &http.Proxy{}
-	proxy.Initialize()
+	proxy.Initialize(router)
 
-	server, err := http.NewServer()
+	server, err := http.NewServer(router.Exists)
 	if err != nil {
 		panic(err)
 	}
@@ -36,7 +53,7 @@ func main() {
 		log.Fatalf("cannot get default ssh config: %s", err)
 	}
 
-	sshServer := &ssh.Server{Config: sshConfig}
+	sshServer := &ssh.Server{Config: sshConfig, Router: router}
 
 	services.Serve("ssh", sshServer)
 
