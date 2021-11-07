@@ -1,7 +1,7 @@
 package command
 
 import (
-	"github.com/fasmide/remotemoe/router"
+	"github.com/fasmide/remotemoe/routertwo"
 	"github.com/fasmide/remotemoe/ssh/command/http"
 	"github.com/spf13/cobra"
 )
@@ -28,14 +28,14 @@ The HTTP proxy only dials inside remotemoe and cannot upstream HTTP requests out
 `
 
 // HTTP is the toplevel command user management of the http proxy
-func HTTP(session router.Routable) *cobra.Command {
+func HTTP(session routertwo.Routable, router *routertwo.Router) *cobra.Command {
 	c := &cobra.Command{
 		Use:   "http",
 		Short: "HTTP proxy management",
 		Long:  longHelp,
 	}
 
-	c.AddCommand(http.Rewrite(session))
+	c.AddCommand(http.Rewrite(session, router))
 
 	return c
 }

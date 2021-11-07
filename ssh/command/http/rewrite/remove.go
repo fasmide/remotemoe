@@ -5,12 +5,12 @@ import (
 	"net/url"
 
 	"github.com/fasmide/remotemoe/http"
-	"github.com/fasmide/remotemoe/router"
+	"github.com/fasmide/remotemoe/routertwo"
 	"github.com/spf13/cobra"
 )
 
 // Remove will delete an active rewrite
-func Remove(r router.Routable) *cobra.Command {
+func Remove(r routertwo.Routable) *cobra.Command {
 	c := &cobra.Command{
 		Use:   "remove",
 		Short: "Remove active rewrites",

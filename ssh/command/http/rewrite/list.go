@@ -2,12 +2,12 @@ package rewrite
 
 import (
 	"github.com/fasmide/remotemoe/http"
-	"github.com/fasmide/remotemoe/router"
+	"github.com/fasmide/remotemoe/routertwo"
 	"github.com/spf13/cobra"
 )
 
 // List displays a list of active http configurations
-func List(r router.Routable) *cobra.Command {
+func List(r routertwo.Routable) *cobra.Command {
 	c := &cobra.Command{
 		Use:   "list",
 		Short: "Lists active matches",

@@ -7,13 +7,13 @@ import (
 	"strings"
 
 	"github.com/fasmide/remotemoe/http"
-	"github.com/fasmide/remotemoe/router"
+	"github.com/fasmide/remotemoe/routertwo"
 	"github.com/fasmide/remotemoe/services"
 	"github.com/spf13/cobra"
 )
 
 // Add allows the user to add a new match
-func Add(r router.Routable) *cobra.Command {
+func Add(r routertwo.Routable, router *routertwo.Router) *cobra.Command {
 	c := &cobra.Command{
 		Use:   "add",
 		Short: "Add a new match",
@@ -25,7 +25,7 @@ func Add(r router.Routable) *cobra.Command {
 			}
 
 			// we have some extra requirements for these urls, make sure they are fulfiled
-			err = validateURL(match, r)
+			err = validateURL(match, r, router)
 			if err != nil {
 				return fmt.Errorf("unable to validate match: %w", err)
 			}
@@ -40,7 +40,7 @@ func Add(r router.Routable) *cobra.Command {
 			flags := cmd.LocalFlags()
 
 			// scheme
-			scheme, err := flags.GetString("scheme")
+			scheme, err := flags.GetString("to-scheme")
 			if err != nil {
 				return fmt.Errorf("scheme flag error: %w", err)
 			}
@@ -51,7 +51,7 @@ func Add(r router.Routable) *cobra.Command {
 			}
 
 			// port
-			port, err := flags.GetString("port")
+			port, err := flags.GetString("to-port")
 			if err != nil {
 				return fmt.Errorf("port flag error: %w", err)
 			}
@@ -86,7 +86,7 @@ func Add(r router.Routable) *cobra.Command {
 
 }
 
-func validateURL(u *url.URL, creator router.Routable) error {
+func validateURL(u *url.URL, creator routertwo.Routable, router *routertwo.Router) error {
 	// urls cannot be relative paths i.e. they must have a host
 	if u.Host == "" {
 		return fmt.Errorf("no host provided in url: %s", u.String())
@@ -105,7 +105,7 @@ func validateURL(u *url.URL, creator router.Routable) error {
 	}
 
 	// if r is a namedRoute, it must be owned by the current routable
-	if namedRoute, ok := r.(*router.NamedRoute); ok {
+	if namedRoute, ok := r.(*routertwo.NamedRoute); ok {
 		if namedRoute.Owner != creator.FQDN() {
 			return fmt.Errorf("this session does not own %s", host)
 		}
