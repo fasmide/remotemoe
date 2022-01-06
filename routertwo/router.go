@@ -2,17 +2,10 @@ package routertwo
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io/fs"
-	"log"
 	"net"
-	"os"
-	"path"
-	"path/filepath"
 	"sync"
-	"syscall"
 	"time"
 )
 
@@ -60,49 +53,6 @@ func NewRouter(dbPath string) (*Router, error) {
 	}
 
 	r.active = r.a
-
-	err := filepath.WalkDir(dbPath, func(p string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if d.IsDir() {
-			return nil
-		}
-
-		fd, err := os.Open(p)
-		if err != nil {
-			return fmt.Errorf("unable to open %s: %w", p, err)
-		}
-		defer fd.Close()
-
-		dec := json.NewDecoder(fd)
-		var i Intermediate
-		err = dec.Decode(&i)
-		if err != nil {
-			return fmt.Errorf("unable to decode json: %w", err)
-		}
-
-		routable, err := i.Wake(r)
-		if err != nil {
-			return fmt.Errorf("json format error: %w", err)
-		}
-
-		a[routable.FQDN()] = routable
-		b[routable.FQDN()] = routable
-
-		nroute, ok := routable.(*NamedRoute)
-		if ok {
-			r.index(nroute)
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		return nil, fmt.Errorf("unable to bring router database up: %w", err)
-	}
-
 	return r, nil
 }
 
@@ -165,13 +115,6 @@ func (r *Router) Online(rtbl Routable) (bool, error) {
 		}
 	}
 
-	// store this host on disk
-	i := &Intermediate{Host: host}
-	err := r.store(rtbl.FQDN(), i)
-	if err != nil {
-		return false, fmt.Errorf("unable to store host: %w", err)
-	}
-
 	// do the exchange
 	(*next)[rtbl.FQDN()] = host
 
@@ -206,13 +149,6 @@ func (r *Router) Offline(d Routable) {
 
 	// change last seen and update record
 	host.LastSeen = time.Now()
-
-	i := &Intermediate{Host: host}
-	err := r.store(host.FQDN(), i)
-	if err != nil {
-		// we need to continue even if we encounter this error
-		log.Printf("router: unable to update host as it went offline: %s", err)
-	}
 
 	// we have to create a new Host and have the old one garbage collected
 	host = &Host{
@@ -251,19 +187,10 @@ func (r *Router) AddName(n *NamedRoute) error {
 	// make sure this name is able to use us
 	n.router = r
 
-	// handle new routes
-	i := &Intermediate{NamedRoute: n}
-	err := r.store(n.FQDN(), i)
-	if err != nil {
-		return fmt.Errorf("unable to store route: %w", err)
-	}
-
 	r.index(n)
 
 	(*next)[n.FQDN()] = n
-
 	r.exchange(next)
-
 	(*old)[n.FQDN()] = n
 
 	return nil
@@ -293,18 +220,10 @@ func (r *Router) RemoveName(s string, from Routable) error {
 		return fmt.Errorf("%s is not your route to remove", s)
 	}
 
-	// remove from disk
-	err := r.unlink(s)
-	if err != nil {
-		return fmt.Errorf("fs error: %w", err)
-	}
-
 	r.reduceIndex(from.FQDN(), namedRouteToRemove)
 
 	delete((*next), s)
-
 	r.exchange(next)
-
 	delete((*old), s)
 
 	return nil
@@ -324,15 +243,8 @@ func (r *Router) RemoveNames(from Routable) ([]*NamedRoute, error) {
 	var successes int
 	var err error
 	for i, n := range list {
-		err = r.unlink(n.FQDN())
-		if err != nil {
-			break
-		}
-
 		successes = i
-
 		r.reduceIndex(from.FQDN(), n)
-
 		delete((*next), n.FQDN())
 	}
 
@@ -444,36 +356,4 @@ func (r *Router) exchange(m *map[string]Routable) {
 
 func (r *Router) finish() {
 	r.editLock.Unlock()
-}
-
-func (r *Router) store(n string, i *Intermediate) error {
-	p := path.Join(r.dbPath, fmt.Sprint(n, ".json"))
-
-	fd, err := os.Create(p)
-	if err != nil {
-		return fmt.Errorf("unable to store data: %w", err)
-	}
-
-	defer fd.Close()
-
-	enc := json.NewEncoder(fd)
-	err = enc.Encode(i)
-	if err != nil {
-		return fmt.Errorf("unable to encode data: %w", err)
-	}
-
-	return nil
-}
-
-func (r *Router) unlink(n string) error {
-	p := path.Join(r.dbPath, fmt.Sprint(n, ".json"))
-
-	err := os.Remove(p)
-
-	// If this file did not exist - its okay
-	if errors.Is(err, syscall.ENOENT) {
-		return nil
-	}
-
-	return err
 }
