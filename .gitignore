@@ -1,4 +1,4 @@
-remotemoe_host_*_key*
+*_host_*_key*
 remotemoe
 acme-secrets
 router.db
