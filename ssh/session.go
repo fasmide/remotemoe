@@ -307,16 +307,6 @@ func (s *Session) acceptForwardRequest(fr ssh.NewChannel) error {
 		channel.Close()
 	}()
 
-	// go func() {
-	// 	_, err := io.Copy(channel, conn)
-	// 	log.Printf("ioCopy channel -> conn: %s", err)
-	// }()
-
-	// go func() {
-	// 	_, err := io.Copy(conn, channel)
-	// 	log.Printf("ioCopy conn -> channel: %s", err)
-	// }()
-
 	return nil
 }
 
