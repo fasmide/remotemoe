@@ -13,6 +13,7 @@ import (
 	"github.com/fasmide/remotemoe/services"
 	"github.com/fatih/color"
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/sync/errgroup"
 )
 
 // IdleTimeout sets how long a session can be idle before getting disconnected
@@ -287,8 +288,34 @@ func (s *Session) acceptForwardRequest(fr ssh.NewChannel) error {
 
 	go ssh.DiscardRequests(requests)
 
-	go io.Copy(channel, conn)
-	go io.Copy(conn, channel)
+	go func() {
+		var group errgroup.Group
+
+		group.Go(func() error {
+			_, err := io.Copy(channel, conn)
+			return err
+		})
+
+		group.Go(func() error {
+			_, err := io.Copy(conn, channel)
+			return err
+		})
+
+		group.Wait()
+
+		conn.Close()
+		channel.Close()
+	}()
+
+	// go func() {
+	// 	_, err := io.Copy(channel, conn)
+	// 	log.Printf("ioCopy channel -> conn: %s", err)
+	// }()
+
+	// go func() {
+	// 	_, err := io.Copy(conn, channel)
+	// 	log.Printf("ioCopy conn -> channel: %s", err)
+	// }()
 
 	return nil
 }
