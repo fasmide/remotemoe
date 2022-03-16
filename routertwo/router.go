@@ -32,6 +32,12 @@ type Routable interface {
 	Replaced()
 }
 
+type Entry struct {
+	Routable
+
+	Metadata map[string]json.Marshaler
+}
+
 // Router - takes care of Routable and Namedroutes
 type Router struct {
 	sync.RWMutex
@@ -39,9 +45,9 @@ type Router struct {
 	dbPath string
 
 	editLock sync.Mutex
-	a        *map[string]Routable
-	b        *map[string]Routable
-	active   *map[string]Routable
+	a        *map[string]*Entry
+	b        *map[string]*Entry
+	active   *map[string]*Entry
 
 	nameIndex map[string][]*NamedRoute
 }
@@ -49,8 +55,8 @@ type Router struct {
 // NewRouter initializes a new Router with a given path
 func NewRouter(dbPath string) (*Router, error) {
 	// make room for a and b lists
-	a := make(map[string]Routable)
-	b := make(map[string]Routable)
+	a := make(map[string]*Entry)
+	b := make(map[string]*Entry)
 
 	r := &Router{
 		dbPath:    dbPath,
@@ -83,13 +89,14 @@ func NewRouter(dbPath string) (*Router, error) {
 			return fmt.Errorf("unable to decode json: %w", err)
 		}
 
-		routable, err := i.Wake(r)
+		routable, md, err := i.Wake(r)
 		if err != nil {
 			return fmt.Errorf("json format error: %w", err)
 		}
 
-		a[routable.FQDN()] = routable
-		b[routable.FQDN()] = routable
+		entry := &Entry{Routable: routable, Metadata: md}
+		a[routable.FQDN()] = entry
+		b[routable.FQDN()] = entry
 
 		nroute, ok := routable.(*NamedRoute)
 		if ok {
@@ -135,7 +142,7 @@ func (r *Router) Online(rtbl Routable) (bool, error) {
 	oldRoute, exists := (*next)[rtbl.FQDN()]
 	if exists { // route exists
 		var ok bool
-		host, ok = oldRoute.(*Host)
+		host, ok = oldRoute.Routable.(*Host)
 		if ok { // route is host
 			go host.Replaced()
 			if host.Routable != nil {
@@ -165,19 +172,25 @@ func (r *Router) Online(rtbl Routable) (bool, error) {
 		}
 	}
 
+	entry := &Entry{Routable: host, Metadata: oldRoute.Metadata}
+
 	// store this host on disk
-	i := &Intermediate{Host: host}
-	err := r.store(rtbl.FQDN(), i)
+	i, err := NewIntermediate(entry)
+	if err != nil {
+		return false, fmt.Errorf("could not create intermediate: %w", err)
+	}
+
+	err = r.store(rtbl.FQDN(), i)
 	if err != nil {
 		return false, fmt.Errorf("unable to store host: %w", err)
 	}
 
 	// do the exchange
-	(*next)[rtbl.FQDN()] = host
+	(*next)[rtbl.FQDN()] = entry
 
 	r.exchange(next)
 
-	(*old)[rtbl.FQDN()] = host
+	(*old)[rtbl.FQDN()] = entry
 
 	return replaced, nil
 }
@@ -187,14 +200,14 @@ func (r *Router) Offline(d Routable) {
 	next, old := r.begin()
 	defer r.finish()
 
-	// we should be able to find this routable
-	routable, ok := (*r.active)[d.FQDN()]
+	// we should be able to find this entry
+	entry, ok := (*r.active)[d.FQDN()]
 	if !ok {
 		return
 	}
 
 	// and the routable should be a host type
-	host, ok := routable.(*Host)
+	host, ok := entry.Routable.(*Host)
 	if !ok {
 		return
 	}
@@ -207,27 +220,32 @@ func (r *Router) Offline(d Routable) {
 	// change last seen and update record
 	host.LastSeen = time.Now()
 
-	i := &Intermediate{Host: host}
-	err := r.store(host.FQDN(), i)
+	// we have to create a new entry and have the old one garbage collected
+	newEntry := &Entry{Routable: &Host{
+		Routable: nil,
+		Name:     host.Name,
+		LastSeen: host.LastSeen,
+		Created:  host.Created,
+	}, Metadata: entry.Metadata}
+
+	i, err := NewIntermediate(newEntry)
+	if err != nil {
+		log.Printf("router: unable to create new intermediate as host went offline: %s", err)
+		// FIXME: should we panic here ?
+	}
+
+	err = r.store(host.FQDN(), i)
 	if err != nil {
 		// we need to continue even if we encounter this error
 		log.Printf("router: unable to update host as it went offline: %s", err)
 	}
 
-	// we have to create a new Host and have the old one garbage collected
-	host = &Host{
-		Routable: nil,
-		Name:     host.Name,
-		LastSeen: host.LastSeen,
-		Created:  host.Created,
-	}
-
 	// do the exchange
-	(*next)[host.Name] = host
+	(*next)[host.Name] = newEntry
 
 	r.exchange(next)
 
-	(*old)[host.Name] = host
+	(*old)[host.Name] = newEntry
 
 }
 
@@ -239,7 +257,7 @@ func (r *Router) AddName(n *NamedRoute) error {
 	// existing routes are handled differently
 	existing, exists := (*next)[n.FQDN()]
 	if exists {
-		if existingNamedRoute, ok := existing.(*NamedRoute); ok {
+		if existingNamedRoute, ok := existing.Routable.(*NamedRoute); ok {
 			if existingNamedRoute.Owner == n.Owner {
 				return nil
 			}
@@ -251,20 +269,25 @@ func (r *Router) AddName(n *NamedRoute) error {
 	// make sure this name is able to use us
 	n.router = r
 
-	// handle new routes
-	i := &Intermediate{NamedRoute: n}
-	err := r.store(n.FQDN(), i)
+	entry := &Entry{Routable: n, Metadata: make(map[string]json.Marshaler)}
+
+	i, err := NewIntermediate(entry)
+	if err != nil {
+		return fmt.Errorf("unable to store route: %s", err)
+	}
+
+	err = r.store(n.FQDN(), i)
 	if err != nil {
 		return fmt.Errorf("unable to store route: %w", err)
 	}
 
 	r.index(n)
 
-	(*next)[n.FQDN()] = n
+	(*next)[n.FQDN()] = entry
 
 	r.exchange(next)
 
-	(*old)[n.FQDN()] = n
+	(*old)[n.FQDN()] = entry
 
 	return nil
 }
@@ -283,7 +306,7 @@ func (r *Router) RemoveName(s string, from Routable) error {
 	}
 
 	// we must ensure the route that was found, is a namedroute
-	namedRouteToRemove, ok := toRemove.(*NamedRoute)
+	namedRouteToRemove, ok := toRemove.Routable.(*NamedRoute)
 	if !ok {
 		return fmt.Errorf("%s is not a named route", s)
 	}
@@ -427,7 +450,7 @@ func (r *Router) reduceIndex(key string, value *NamedRoute) {
 	r.nameIndex[key] = append(ret, i[idx+1:]...)
 }
 
-func (r *Router) begin() (*map[string]Routable, *map[string]Routable) {
+func (r *Router) begin() (*map[string]*Entry, *map[string]*Entry) {
 	r.editLock.Lock()
 	if r.active == r.a {
 		return r.b, r.a
@@ -436,7 +459,7 @@ func (r *Router) begin() (*map[string]Routable, *map[string]Routable) {
 	return r.a, r.b
 }
 
-func (r *Router) exchange(m *map[string]Routable) {
+func (r *Router) exchange(m *map[string]*Entry) {
 	r.Lock()
 	r.active = m
 	r.Unlock()
