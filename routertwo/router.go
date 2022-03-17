@@ -139,10 +139,12 @@ func (r *Router) Online(rtbl Routable) (bool, error) {
 
 	var host *Host
 	var replaced bool
-	oldRoute, exists := (*next)[rtbl.FQDN()]
+	var metadata map[string]json.Marshaler
+	oldEntry, exists := (*next)[rtbl.FQDN()]
+
 	if exists { // route exists
 		var ok bool
-		host, ok = oldRoute.Routable.(*Host)
+		host, ok = oldEntry.Routable.(*Host)
 		if ok { // route is host
 			go host.Replaced()
 			if host.Routable != nil {
@@ -155,6 +157,8 @@ func (r *Router) Online(rtbl Routable) (bool, error) {
 				LastSeen: time.Now(),
 				Created:  host.Created,
 			}
+
+			metadata = oldEntry.Metadata
 		} else { // if route was not host - just replace
 			host = &Host{
 				Routable: rtbl,
@@ -162,6 +166,8 @@ func (r *Router) Online(rtbl Routable) (bool, error) {
 				LastSeen: time.Now(),
 				Created:  time.Now(),
 			}
+
+			metadata = make(map[string]json.Marshaler)
 		}
 	} else { // we havnt seen this one before
 		host = &Host{
@@ -170,9 +176,11 @@ func (r *Router) Online(rtbl Routable) (bool, error) {
 			LastSeen: time.Now(),
 			Created:  time.Now(),
 		}
+
+		metadata = make(map[string]json.Marshaler)
 	}
 
-	entry := &Entry{Routable: host, Metadata: oldRoute.Metadata}
+	entry := &Entry{Routable: host, Metadata: metadata}
 
 	// store this host on disk
 	i, err := NewIntermediate(entry)
