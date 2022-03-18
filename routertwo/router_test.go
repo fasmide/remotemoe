@@ -30,10 +30,12 @@ func TestRouter(t *testing.T) {
 
 }
 
-type DummyRoutable struct{}
+type DummyRoutable struct {
+	Name string
+}
 
 func (r *DummyRoutable) FQDN() string {
-	return "dummy.remote.moe"
+	return r.Name
 }
 
 func (r *DummyRoutable) DialContext(_ context.Context, _, _ string) (net.Conn, error) {
@@ -43,7 +45,7 @@ func (r *DummyRoutable) DialContext(_ context.Context, _, _ string) (net.Conn, e
 func (r *DummyRoutable) Replaced() {}
 
 func TestReplace(t *testing.T) {
-	dummy := &DummyRoutable{}
+	dummy := &DummyRoutable{Name: "TestReplace.remote.moe"}
 	replaced, err := router.Online(dummy)
 	if err != nil {
 		t.Fatalf("unable to replace first time: %s", err)
@@ -64,7 +66,7 @@ func TestReplace(t *testing.T) {
 	}
 
 	// so, we should be able to dial our dummy, and receive an error
-	_, err = router.DialContext(context.TODO(), "tcp", "dummy.remote.moe:80")
+	_, err = router.DialContext(context.TODO(), "tcp", "TestReplace.remote.moe:80")
 	if !errors.Is(err, errDummy) {
 		t.Fatalf("we did not expect error: %s", err)
 	}
@@ -99,14 +101,14 @@ func TestRace(t *testing.T) {
 	var g errgroup.Group
 
 	g.Go(func() error {
-		router.Online(&DummyRoutable{})
+		router.Online(&DummyRoutable{Name: "TestRace.remote.moe"})
 		return nil
 	})
 
 	for i := 0; i < 5; i++ {
 
 		g.Go(func() error {
-			_, err := router.DialContext(context.TODO(), "tcp", "dummy.remote.moe:80")
+			_, err := router.DialContext(context.TODO(), "tcp", "testrace.remote.moe:80")
 			if !errors.Is(err, errDummy) {
 				return fmt.Errorf("did not expect %w", err)
 			}
@@ -115,7 +117,7 @@ func TestRace(t *testing.T) {
 	}
 
 	g.Go(func() error {
-		router.Offline(&DummyRoutable{})
+		router.Offline(&DummyRoutable{Name: "TestRace.remote.moe"})
 		return nil
 	})
 
@@ -126,8 +128,10 @@ func TestRace(t *testing.T) {
 }
 
 func TestAddRemoveName(t *testing.T) {
-	rtbl := &DummyRoutable{}
-	name := NewName("hejhej.remote.moe", rtbl)
+	rtbl := &DummyRoutable{Name: "TestAddRemoveName.remote.moe"}
+	router.Online(rtbl)
+	router.Offline(rtbl)
+	name := NewName("TestAddRemoveName-alias.remote.moe", rtbl)
 
 	err := router.AddName(name)
 	if err != nil {
@@ -135,26 +139,26 @@ func TestAddRemoveName(t *testing.T) {
 	}
 
 	// we should now be able to dial the name, and end up with our dummyroute
-	_, err = router.DialContext(context.TODO(), "tcp", "hejhej.remote.moe:80")
+	_, err = router.DialContext(context.TODO(), "tcp", "testaddremovename-alias.remote.moe:80")
 	if !errors.Is(err, ErrOffline) {
 		t.Fatalf("unexpected error from router: %s", err)
 	}
 
 	// we should also check if the name appeared on our filesystem
-	predictedPath := path.Join(router.dbPath, "hejhej.remote.moe.json")
+	predictedPath := path.Join(router.dbPath, "testaddremovename-alias.remote.moe.json")
 
 	_, err = os.Stat(predictedPath)
 	if err != nil {
 		t.Fatalf("unexpected error from stat: %s", err)
 	}
 
-	err = router.RemoveName("hejhej.remote.moe", rtbl)
+	err = router.RemoveName("testaddremovename-alias.remote.moe", rtbl)
 	if err != nil {
 		t.Fatalf("did not expect remove error: %s", err)
 	}
 
 	// now if we dial the same name, we should receive a notfound error
-	_, err = router.DialContext(context.TODO(), "tcp", "hejhej.remote.moe:80")
+	_, err = router.DialContext(context.TODO(), "tcp", "TestAddRemoveName-alias.remote.moe:80")
 	if !errors.Is(err, ErrNotFound) {
 		t.Fatalf("we expected a not found error: %s", err)
 	}
@@ -167,14 +171,14 @@ func TestAddRemoveName(t *testing.T) {
 }
 
 func TestIndex(t *testing.T) {
-	rtbl := &DummyRoutable{}
-	name := NewName("hello.remote.moe", rtbl)
-	name2 := NewName("hello2.remote.moe", rtbl)
+	rtbl := &DummyRoutable{Name: "TestIndex.remote.moe"}
+	name := NewName("TestIndex-hello.remote.moe", rtbl)
+	name2 := NewName("TestIndex-hello2.remote.moe", rtbl)
 
 	router.index(name)
 	router.index(name2)
 
-	list := router.nameIndex["dummy.remote.moe"]
+	list := router.nameIndex["testindex.remote.moe"]
 
 	t.Logf("index: %+v", router.nameIndex)
 	router.reduceIndex("dummy.remote.moe", name)
@@ -186,11 +190,11 @@ func TestIndex(t *testing.T) {
 }
 
 func TestRemoveNames(t *testing.T) {
-	rtbl := &DummyRoutable{}
+	rtbl := &DummyRoutable{Name: "TestRemoveNames.remote.moe"}
 	router.Online(rtbl)
 
-	name := NewName("hello.remote.moe", rtbl)
-	name2 := NewName("hello2.remote.moe", rtbl)
+	name := NewName("TestRemoveNames-hello.remote.moe", rtbl)
+	name2 := NewName("TestRemoveNames-hello2.remote.moe", rtbl)
 
 	err := router.AddName(name)
 	if err != nil {
@@ -202,12 +206,12 @@ func TestRemoveNames(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = router.DialContext(context.TODO(), "tcp", "hello.remote.moe:80")
+	_, err = router.DialContext(context.TODO(), "tcp", "testremovenames-hello.remote.moe:80")
 	if !errors.Is(err, errDummy) {
 		t.Fatalf("expected errDummy, got: %s", err)
 	}
 
-	_, err = router.DialContext(context.TODO(), "tcp", "hello2.remote.moe:80")
+	_, err = router.DialContext(context.TODO(), "tcp", "testremovenames-hello2.remote.moe:80")
 	if !errors.Is(err, errDummy) {
 		t.Fatalf("expected errDummy, got: %s", err)
 	}
@@ -217,22 +221,22 @@ func TestRemoveNames(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if names[0].FQDN() != "hello.remote.moe" {
-		t.Fatalf("first name was not hello.remote.moe, %s", names[0].FQDN())
+	if names[0].FQDN() != "testremovenames-hello.remote.moe" {
+		t.Fatalf("first name was not testremovenames-hello.remote.moe, %s", names[0].FQDN())
 	}
 
-	if names[1].FQDN() != "hello2.remote.moe" {
-		t.Fatal("second name was not hello2.remote.moe")
+	if names[1].FQDN() != "testremovenames-hello2.remote.moe" {
+		t.Fatal("second name was not testremovenames-hello2.remote.moe")
 	}
 
 	// and now, we should not be able to dial them any more
-	_, err = router.DialContext(context.TODO(), "tcp", "hello2.remote.moe:80")
+	_, err = router.DialContext(context.TODO(), "tcp", "TestRemoveNames-hello2.remote.moe:80")
 	if !errors.Is(err, ErrNotFound) {
 		t.Fatalf("expected ErrNotFound, got: %s", err)
 	}
 
 	// and now, we should not be able to dial them any more
-	_, err = router.DialContext(context.TODO(), "tcp", "hello.remote.moe:80")
+	_, err = router.DialContext(context.TODO(), "tcp", "TestRemoveNames-hello.remote.moe:80")
 	if !errors.Is(err, ErrNotFound) {
 		t.Fatalf("expected ErrNotFound, got: %s", err)
 	}
@@ -240,8 +244,8 @@ func TestRemoveNames(t *testing.T) {
 
 func TestNames(t *testing.T) {
 	rtbl := &DummyRoutable{}
-	name := NewName("hello.remote.moe", rtbl)
-	name2 := NewName("hello2.remote.moe", rtbl)
+	name := NewName("TestNames-hello.remote.moe", rtbl)
+	name2 := NewName("TestNames-hello2.remote.moe", rtbl)
 
 	router.AddName(name)
 	router.AddName(name2)
@@ -251,11 +255,11 @@ func TestNames(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 
-	if names[0].FQDN() != "hello.remote.moe" {
+	if names[0].FQDN() != "testnames-hello.remote.moe" {
 		t.Fatalf("unexpected FQDN of first item: %s", names[0].FQDN())
 	}
 
-	if names[1].FQDN() != "hello2.remote.moe" {
+	if names[1].FQDN() != "testnames-hello2.remote.moe" {
 		t.Fatalf("unexpected FQDN of second item: %s", names[0].FQDN())
 	}
 }
