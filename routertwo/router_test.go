@@ -100,10 +100,14 @@ func TestRestoreDatabase(t *testing.T) {
 func TestRace(t *testing.T) {
 	var g errgroup.Group
 
-	g.Go(func() error {
-		router.Online(&DummyRoutable{Name: "TestRace.remote.moe"})
-		return nil
-	})
+	router.Online(&DummyRoutable{Name: "testrace.remote.moe"})
+
+	for i := 0; i < 5; i++ {
+		g.Go(func() error {
+			router.Online(&DummyRoutable{Name: "testrace.remote.moe"})
+			return nil
+		})
+	}
 
 	for i := 0; i < 5; i++ {
 
@@ -116,15 +120,12 @@ func TestRace(t *testing.T) {
 		})
 	}
 
-	g.Go(func() error {
-		router.Offline(&DummyRoutable{Name: "TestRace.remote.moe"})
-		return nil
-	})
-
 	err := g.Wait()
 	if err != nil {
 		t.Fatalf("error: %s", err)
 	}
+
+	router.Offline(&DummyRoutable{Name: "TestRace.remote.moe"})
 }
 
 func TestAddRemoveName(t *testing.T) {
