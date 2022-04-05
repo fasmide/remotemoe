@@ -2,6 +2,7 @@ package routertwo
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -43,6 +44,44 @@ func (r *DummyRoutable) DialContext(_ context.Context, _, _ string) (net.Conn, e
 }
 
 func (r *DummyRoutable) Replaced() {}
+
+func init() {
+	RegisterDecoder("SpecialMetadata", &SpecialMetadataDecoder{})
+}
+
+type SpecialMetadataDecoder struct{}
+
+func (s *SpecialMetadataDecoder) Decode(msg json.RawMessage) (interface{}, error) {
+	sm := &SpecialMetadata{}
+	err := json.Unmarshal(msg, sm)
+	return sm, err
+}
+
+type SpecialMetadata struct {
+	A string
+	B bool
+	C float64
+}
+
+func TestSpecialMetadata(t *testing.T) {
+	d := &DummyRoutable{Name: "specialmetadata.remote.moe"}
+	_, err := router.Online(d)
+	if err != nil {
+		t.Fatalf("unable to bring dummyroutable online: %s", err)
+	}
+
+	specialData := &SpecialMetadata{
+		A: "Hello",
+		B: true,
+		C: 3.14,
+	}
+
+	err = router.AddMeta(d, "SpecialMetadata", specialData)
+	if err != nil {
+		t.Fatalf("could not add special metadata: %s", err)
+	}
+
+}
 
 func TestReplace(t *testing.T) {
 	dummy := &DummyRoutable{Name: "TestReplace.remote.moe"}

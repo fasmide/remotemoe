@@ -35,7 +35,7 @@ type Routable interface {
 type Entry struct {
 	Routable
 
-	Metadata map[string]json.Marshaler
+	Metadata map[string]interface{}
 }
 
 // Router - takes care of Routable and Namedroutes
@@ -139,7 +139,7 @@ func (r *Router) Online(rtbl Routable) (bool, error) {
 
 	var host *Host
 	var replaced bool
-	var metadata map[string]json.Marshaler
+	var metadata map[string]interface{}
 	oldEntry, exists := (*next)[rtbl.FQDN()]
 
 	if exists { // route exists
@@ -167,7 +167,7 @@ func (r *Router) Online(rtbl Routable) (bool, error) {
 				Created:  time.Now(),
 			}
 
-			metadata = make(map[string]json.Marshaler)
+			metadata = make(map[string]interface{})
 		}
 	} else { // we havnt seen this one before
 		host = &Host{
@@ -177,7 +177,7 @@ func (r *Router) Online(rtbl Routable) (bool, error) {
 			Created:  time.Now(),
 		}
 
-		metadata = make(map[string]json.Marshaler)
+		metadata = make(map[string]interface{})
 	}
 
 	entry := &Entry{Routable: host, Metadata: metadata}
@@ -277,7 +277,7 @@ func (r *Router) AddName(n *NamedRoute) error {
 	// make sure this name is able to use us
 	n.router = r
 
-	entry := &Entry{Routable: n, Metadata: make(map[string]json.Marshaler)}
+	entry := &Entry{Routable: n, Metadata: make(map[string]interface{})}
 
 	i, err := NewIntermediate(entry)
 	if err != nil {
@@ -298,6 +298,57 @@ func (r *Router) AddName(n *NamedRoute) error {
 	(*old)[n.FQDN()] = entry
 
 	return nil
+}
+
+func (r *Router) AddMeta(rtble Routable, name string, meta interface{}) error {
+	next, old := r.begin()
+	defer r.finish()
+
+	e, exists := (*next)[rtble.FQDN()]
+	if !exists {
+		return fmt.Errorf("%s does not exist", rtble.FQDN())
+	}
+
+	e.Metadata[name] = meta
+
+	// store this host on disk
+	i, err := NewIntermediate(e)
+	if err != nil {
+		return fmt.Errorf("could not create intermediate: %w", err)
+	}
+
+	err = r.store(rtble.FQDN(), i)
+	if err != nil {
+		return fmt.Errorf("unable to store host: %w", err)
+	}
+
+	r.exchange(next)
+
+	e, exists = (*old)[rtble.FQDN()]
+	if !exists {
+		panic(fmt.Sprintf("entry %s found in next list was missing in old list, this is broken state", rtble.FQDN()))
+	}
+
+	e.Metadata[name] = meta
+
+	return nil
+}
+
+func (r *Router) GetMeta(rtble Routable, name string) (interface{}, error) {
+	r.RLock()
+	defer r.RUnlock()
+
+	entry, exists := (*r.active)[rtble.FQDN()]
+	if !exists {
+		return nil, fmt.Errorf("%s does not exist", rtble.FQDN())
+	}
+
+	data, exists := entry.Metadata[name]
+	if !exists {
+		return nil, fmt.Errorf("%s has no %s metadata", rtble.FQDN(), name)
+	}
+
+	return data, nil
 }
 
 // RemoveName removes a named router if

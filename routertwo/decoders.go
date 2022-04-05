@@ -3,7 +3,7 @@ package routertwo
 import "encoding/json"
 
 type Decoder interface {
-	Decode(json.RawMessage) (json.Marshaler, error)
+	Decode(json.RawMessage) (interface{}, error)
 }
 
 var decoders map[string]Decoder

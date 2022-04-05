@@ -17,7 +17,7 @@ func NewIntermediate(e *Entry) (*Intermediate, error) {
 	// we need to convert Marshaler into "[]byte"
 	md := make(map[string]json.RawMessage)
 	for n, v := range e.Metadata {
-		b, err := v.MarshalJSON()
+		b, err := json.Marshal(v)
 		if err != nil {
 			return nil, fmt.Errorf("unable to marshal %s: %w", n, err)
 		}
@@ -40,8 +40,8 @@ func NewIntermediate(e *Entry) (*Intermediate, error) {
 
 // Wake wakes up a newly parsed Host or NamedRoute
 // Named routes needs to know the current router
-func (i *Intermediate) Wake(r *Router) (Routable, map[string]json.Marshaler, error) {
-	md := make(map[string]json.Marshaler)
+func (i *Intermediate) Wake(r *Router) (Routable, map[string]interface{}, error) {
+	md := make(map[string]interface{})
 	for n, v := range i.Metadata {
 		dec, exists := decoders[n]
 		if !exists {
