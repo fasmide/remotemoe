@@ -324,12 +324,16 @@ func (r *Router) AddMeta(rtble Routable, name string, meta interface{}) error {
 
 	r.exchange(next)
 
-	e, exists = (*old)[rtble.FQDN()]
+	ee, exists := (*old)[rtble.FQDN()]
 	if !exists {
 		panic(fmt.Sprintf("entry %s found in next list was missing in old list, this is broken state", rtble.FQDN()))
 	}
 
-	e.Metadata[name] = meta
+	ee.Metadata[name] = meta
+
+	if e == ee {
+		panic(fmt.Sprintf("what, these two are identical %p and %p", &e, &ee))
+	}
 
 	return nil
 }

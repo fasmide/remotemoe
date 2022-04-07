@@ -81,6 +81,64 @@ func TestSpecialMetadata(t *testing.T) {
 		t.Fatalf("could not add special metadata: %s", err)
 	}
 
+	// we should be able to get this data back
+	sd, err := router.GetMeta(d, "SpecialMetadata")
+	if err != nil {
+		t.Fatalf("unable to get back special metadata: %s", err)
+	}
+
+	if sd != specialData {
+		t.Fatalf("%+v != %+v", sd, specialData)
+	}
+
+}
+
+func TestMetadataRace(t *testing.T) {
+	d := &DummyRoutable{Name: "metadatarace.remote.moe"}
+
+	_, err := router.Online(d)
+	if err != nil {
+		t.Fatalf("unable to bring dummyroutable online: %s", err)
+	}
+
+	var g errgroup.Group
+
+	for i := 0; i < 5; i++ {
+		i := i
+		g.Go(func() error {
+
+			specialData := &SpecialMetadata{
+				A: fmt.Sprintf("Hello %d", i),
+				B: true,
+				C: float64(i),
+			}
+
+			err := router.AddMeta(d, "SpecialMetadata", specialData)
+			if err != nil {
+				return fmt.Errorf("could not add special metadata: %w", err)
+			}
+
+			return nil
+		})
+	}
+
+	for i := 0; i < 5; i++ {
+
+		g.Go(func() error {
+			_, err := router.GetMeta(d, "SpecialMetadata")
+			if err != nil {
+				return err
+			}
+			return nil
+		})
+	}
+
+	err = g.Wait()
+	if err != nil {
+		t.Fatalf("error: %s", err)
+	}
+
+	router.Offline(&DummyRoutable{Name: "TestRace.remote.moe"})
 }
 
 func TestReplace(t *testing.T) {
