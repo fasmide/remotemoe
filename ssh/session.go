@@ -19,6 +19,9 @@ import (
 // IdleTimeout sets how long a session can be idle before getting disconnected
 const IdleTimeout = time.Minute
 
+const KeepAliveInterval = time.Minute * 10
+const KeepAliveTimeout = time.Second * 15
+
 // Session represents a ongoing SSH connection
 type Session struct {
 	// Raw socket
@@ -33,6 +36,8 @@ type Session struct {
 	idleLock     sync.Mutex
 	idleTimeout  *time.Timer
 	idleDisabled bool
+
+	keepAliveTimer *time.Timer
 
 	// messages to the terminal (i.e. the user)
 	msgs chan string
@@ -64,6 +69,9 @@ func (s *Session) Handle() {
 	// if a connection havnt done anything useful within a minute, throw them away
 	s.idleTimeout = time.AfterFunc(IdleTimeout, s.Timeout)
 
+	// this timer it continuously reset by the KeepAlive function
+	s.keepAliveTimer = time.AfterFunc(KeepAliveInterval, s.KeepAlive)
+
 	// The incoming Request channel must be serviced.
 	go s.handleRequests()
 
@@ -75,6 +83,26 @@ func (s *Session) Handle() {
 
 	// No reason to keep the timer active
 	s.DisableTimeout()
+
+	s.keepAliveTimer.Stop()
+}
+
+func (s *Session) KeepAlive() {
+	// the keepalive request will race this timer to cancel the termination
+	race := time.AfterFunc(KeepAliveTimeout, func() {
+		logger.Printf("%s did not respond to keepalive requests within %s", s.clearConn.RemoteAddr(), KeepAliveTimeout)
+		s.Close()
+	})
+
+	_, _, err := s.secureConn.SendRequest("keepalive@golang.org", true, nil)
+	race.Stop()
+
+	if err != nil {
+		s.Close()
+		return
+	}
+
+	s.keepAliveTimer.Reset(KeepAliveInterval)
 }
 
 // Close closes a ssh session
