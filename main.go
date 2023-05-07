@@ -6,10 +6,14 @@ import (
 	"os"
 	"path"
 
+	gohttp "net/http"
+
 	"github.com/fasmide/remotemoe/http"
 	"github.com/fasmide/remotemoe/routertwo"
 	"github.com/fasmide/remotemoe/services"
 	"github.com/fasmide/remotemoe/ssh"
+
+	_ "net/http/pprof"
 )
 
 func main() {
@@ -56,6 +60,10 @@ func main() {
 	sshServer := &ssh.Server{Config: sshConfig, Router: router}
 
 	services.Serve("ssh", sshServer)
+
+	go func() {
+		log.Println(gohttp.ListenAndServe("localhost:6060", nil))
+	}()
 
 	// we shall be dealing with shutting down in the future :)
 	select {}
