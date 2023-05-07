@@ -80,12 +80,12 @@ func NewRouter(dbPath string) (*Router, error) {
 		var i Intermediate
 		err = dec.Decode(&i)
 		if err != nil {
-			return fmt.Errorf("unable to decode json: %w", err)
+			return fmt.Errorf("unable to decode json (%s): %w", p, err)
 		}
 
 		routable, err := i.Wake(r)
 		if err != nil {
-			return fmt.Errorf("json format error: %w", err)
+			return fmt.Errorf("json format error (%s): %w", p, err)
 		}
 
 		a[routable.FQDN()] = routable
