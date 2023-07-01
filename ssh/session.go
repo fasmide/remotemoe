@@ -361,7 +361,7 @@ func (s *Session) DialContext(ctx context.Context, network, address string) (net
 	}
 
 	channel, reqs, err := s.secureConn.OpenChannel("forwarded-tcpip", ssh.Marshal(directTCPIP{
-		Addr:  "127.0.0.1",
+		Addr:  "localhost",
 		Rport: uint32(p),
 	}))
 
