@@ -6,7 +6,7 @@ GITDATE=$(git show -s --format=%ci ${GITHASH})
 GITREPOSITORY=$(git config --get remote.origin.url)
 GITPORCELAIN=$(git status --porcelain)
 
-go build "$@" \
+CGO_ENABLED=0 go build "$@" \
   -ldflags "-X github.com/fasmide/remotemoe/buildvars.Initialized=true
   -X github.com/fasmide/remotemoe/buildvars.GitCommit=${GITHASH}
   -X 'github.com/fasmide/remotemoe/buildvars.GitCommitDate=${GITDATE}' 
