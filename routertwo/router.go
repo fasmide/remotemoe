@@ -99,11 +99,84 @@ func NewRouter(dbPath string) (*Router, error) {
 		return nil
 	})
 
+	go r.cleaningRoutine()
+
 	if err != nil {
 		return nil, fmt.Errorf("unable to bring router database up: %w", err)
 	}
 
 	return r, nil
+}
+
+const cleaningDelay = time.Hour
+const evictAfter = time.Hour * 24 * 30
+
+// cleaning routine runs once started and then every hour
+func (r *Router) cleaningRoutine() {
+	time.Sleep(cleaningDelay)
+
+	start := time.Now()
+	removed := 0
+
+	next, old := r.begin()
+	for _, i := range *next {
+		// we can only deal with hosts
+		// named routes should cascade
+		host, ok := i.(*Host)
+		if !ok {
+			continue
+		}
+
+		// should this host be evicted?
+		delta := start.Sub(host.LastSeen)
+		if delta < evictAfter {
+			continue
+		}
+
+		// continue with removal
+		delete(*next, host.FQDN())
+
+		removed++
+	}
+
+	r.exchange(next)
+
+	// second pass
+	for _, i := range *old {
+		host, ok := i.(*Host)
+		if !ok {
+			continue
+		}
+
+		delta := start.Sub(host.LastSeen)
+		if delta < evictAfter {
+			continue
+		}
+
+		// remove indexes
+		// TODO: is there a race condition here?
+		for _, n := range r.nameIndex[host.FQDN()] {
+			err := r.unlink(n.FQDN())
+			if err != nil {
+				panic(err)
+			}
+		}
+		delete(r.nameIndex, host.FQDN())
+
+		delete(*old, host.FQDN())
+
+		// remove host file
+		err := r.unlink(host.FQDN())
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	r.finish()
+
+	log.Printf("cleaning finished, removed %d in %s", removed, time.Since(start))
+
+	go r.cleaningRoutine()
 }
 
 // DialContext is used by stuff that what to dial something up
