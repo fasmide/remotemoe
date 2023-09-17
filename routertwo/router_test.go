@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"testing"
+	"time"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -27,13 +28,17 @@ func TestRouter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to create new router: %s", err)
 	}
-
 }
 
-type DummyRoutable struct{}
+type DummyRoutable struct {
+	Name string
+}
 
 func (r *DummyRoutable) FQDN() string {
-	return "dummy.remote.moe"
+	if r.Name == "" {
+		panic("Dummyroutable cannot have empty name")
+	}
+	return r.Name
 }
 
 func (r *DummyRoutable) DialContext(_ context.Context, _, _ string) (net.Conn, error) {
@@ -43,7 +48,7 @@ func (r *DummyRoutable) DialContext(_ context.Context, _, _ string) (net.Conn, e
 func (r *DummyRoutable) Replaced() {}
 
 func TestReplace(t *testing.T) {
-	dummy := &DummyRoutable{}
+	dummy := &DummyRoutable{Name: "dummyd.remote.moe"}
 	replaced, err := router.Online(dummy)
 	if err != nil {
 		t.Fatalf("unable to replace first time: %s", err)
@@ -64,10 +69,14 @@ func TestReplace(t *testing.T) {
 	}
 
 	// so, we should be able to dial our dummy, and receive an error
-	_, err = router.DialContext(context.TODO(), "tcp", "dummy.remote.moe:80")
+	_, err = router.DialContext(context.TODO(), "tcp", "dummyd.remote.moe:80")
 	if !errors.Is(err, errDummy) {
 		t.Fatalf("we did not expect error: %s", err)
 	}
+}
+
+func TestClean(t *testing.T) {
+	router.Clean(time.Second)
 }
 
 func TestRestoreDatabase(t *testing.T) {
@@ -98,15 +107,12 @@ func TestRestoreDatabase(t *testing.T) {
 func TestRace(t *testing.T) {
 	var g errgroup.Group
 
-	g.Go(func() error {
-		router.Online(&DummyRoutable{})
-		return nil
-	})
+	router.Online(&DummyRoutable{Name: "race.remote.moe"})
 
 	for i := 0; i < 5; i++ {
 
 		g.Go(func() error {
-			_, err := router.DialContext(context.TODO(), "tcp", "dummy.remote.moe:80")
+			_, err := router.DialContext(context.TODO(), "tcp", "race.remote.moe:80")
 			if !errors.Is(err, errDummy) {
 				return fmt.Errorf("did not expect %w", err)
 			}
@@ -115,7 +121,7 @@ func TestRace(t *testing.T) {
 	}
 
 	g.Go(func() error {
-		router.Offline(&DummyRoutable{})
+		router.Offline(&DummyRoutable{Name: "race.remote.moe"})
 		return nil
 	})
 
@@ -126,10 +132,16 @@ func TestRace(t *testing.T) {
 }
 
 func TestAddRemoveName(t *testing.T) {
-	rtbl := &DummyRoutable{}
+	rtbl := &DummyRoutable{Name: "addremovename.remote.moe"}
+	_, err := router.Online(rtbl)
+	if err != nil {
+		t.Fatalf("unexpected error from router: %s", err)
+	}
+
+	router.Offline(rtbl)
 	name := NewName("hejhej.remote.moe", rtbl)
 
-	err := router.AddName(name)
+	err = router.AddName(name)
 	if err != nil {
 		t.Fatalf("could not add name: %s", err)
 	}
@@ -167,26 +179,26 @@ func TestAddRemoveName(t *testing.T) {
 }
 
 func TestIndex(t *testing.T) {
-	rtbl := &DummyRoutable{}
+	rtbl := &DummyRoutable{Name: "testindex.remote.moe"}
 	name := NewName("hello.remote.moe", rtbl)
 	name2 := NewName("hello2.remote.moe", rtbl)
 
 	router.index(name)
 	router.index(name2)
 
-	list := router.nameIndex["dummy.remote.moe"]
+	list := router.nameIndex["testindex.remote.moe"]
 
 	t.Logf("index: %+v", router.nameIndex)
-	router.reduceIndex("dummy.remote.moe", name)
+	router.reduceIndex("testindex.remote.moe", name)
 	t.Logf("index: %+v", router.nameIndex)
-	router.reduceIndex("dummy.remote.moe", name2)
+	router.reduceIndex("testindex.remote.moe", name2)
 	t.Logf("index: %+v", router.nameIndex)
 	t.Logf("list: %+v", list)
 
 }
 
 func TestRemoveNames(t *testing.T) {
-	rtbl := &DummyRoutable{}
+	rtbl := &DummyRoutable{Name: "testremovename.remote.moe"}
 	router.Online(rtbl)
 
 	name := NewName("hello.remote.moe", rtbl)
@@ -239,7 +251,7 @@ func TestRemoveNames(t *testing.T) {
 }
 
 func TestNames(t *testing.T) {
-	rtbl := &DummyRoutable{}
+	rtbl := &DummyRoutable{Name: "testnames.remote.moe"}
 	name := NewName("hello.remote.moe", rtbl)
 	name2 := NewName("hello2.remote.moe", rtbl)
 
