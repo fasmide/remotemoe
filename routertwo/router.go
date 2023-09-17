@@ -99,8 +99,6 @@ func NewRouter(dbPath string) (*Router, error) {
 		return nil
 	})
 
-	go r.cleaningRoutine()
-
 	if err != nil {
 		return nil, fmt.Errorf("unable to bring router database up: %w", err)
 	}
@@ -108,13 +106,8 @@ func NewRouter(dbPath string) (*Router, error) {
 	return r, nil
 }
 
-const cleaningDelay = time.Hour
-const evictAfter = time.Hour * 24 * 30
-
 // cleaning routine runs once started and then every hour
-func (r *Router) cleaningRoutine() {
-	time.Sleep(cleaningDelay)
-
+func (r *Router) Clean(evict time.Duration) {
 	start := time.Now()
 	removed := 0
 
@@ -129,7 +122,7 @@ func (r *Router) cleaningRoutine() {
 
 		// should this host be evicted?
 		delta := start.Sub(host.LastSeen)
-		if delta < evictAfter {
+		if delta < evict {
 			continue
 		}
 
@@ -149,7 +142,7 @@ func (r *Router) cleaningRoutine() {
 		}
 
 		delta := start.Sub(host.LastSeen)
-		if delta < evictAfter {
+		if delta < evict {
 			continue
 		}
 
@@ -175,8 +168,6 @@ func (r *Router) cleaningRoutine() {
 	r.finish()
 
 	log.Printf("cleaning finished, removed %d in %s", removed, time.Since(start))
-
-	go r.cleaningRoutine()
 }
 
 // DialContext is used by stuff that what to dial something up
