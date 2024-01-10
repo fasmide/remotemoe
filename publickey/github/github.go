@@ -6,12 +6,19 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"regexp"
 
 	"golang.org/x/crypto/ssh"
 )
 
+var validGithubUsername = regexp.MustCompile(`^[a-zA-Z0-9\-]+$`).MatchString
+
 func PublicKey(c ssh.ConnMetadata, pubKey ssh.PublicKey) (*ssh.Permissions, error) {
 	user := c.User()
+
+	if !validGithubUsername(user) {
+		return nil, fmt.Errorf("%s is not an allowed github username", user)
+	}
 
 	u, err := url.JoinPath("https://github.com/", user+".keys")
 	if err != nil {
