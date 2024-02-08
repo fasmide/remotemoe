@@ -7,13 +7,28 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 
+	"github.com/fasmide/remotemoe/publickey"
 	"golang.org/x/crypto/ssh"
 )
 
+func init() {
+	enabled := os.Getenv("REMOTEMOE_PUBLICKEY_GITHUB")
+	if enabled != "yes" {
+		return
+	}
+
+	publickey.RegisterSource(&Github{Endpoint: "https://github.com/"})
+}
+
 type Github struct {
 	Endpoint string
+}
+
+func (g *Github) Authorize(u string, k ssh.PublicKey) (bool, error) {
+	return false, nil
 }
 
 var validGithubUsername = regexp.MustCompile(`^[a-zA-Z0-9\-]+$`).MatchString
