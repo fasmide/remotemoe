@@ -4,11 +4,14 @@ import (
 	"crypto/sha256"
 	"encoding/base32"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/fasmide/hostkeys"
+	"github.com/fasmide/remotemoe/publickey"
 	"golang.org/x/crypto/ssh"
+
+	_ "github.com/fasmide/remotemoe/publickey/anyone"
+	_ "github.com/fasmide/remotemoe/publickey/github"
 )
 
 // RawPrivateKey could be set with ldflags on build time
@@ -31,6 +34,10 @@ type PublicKeyCB func(c ssh.ConnMetadata, pubKey ssh.PublicKey) (*ssh.Permission
 // DefaultConfig generates a default ssh.ServerConfig
 func DefaultConfig() (*ssh.ServerConfig, error) {
 	config := &ssh.ServerConfig{
+		BannerCallback: func(_ ssh.ConnMetadata) string {
+			return "the remote.moe service now requires authentication\nread all about it:https://github.com/fasmide/remotemoe/discussions/14\n"
+		},
+
 		// try to take advantage of AES-NI, by moving chachapoly last of preferred ciphers
 		// 	* Well that didnt work - it seems the official ssh client really likes chacha20,
 		//	so if we really want AES-NI it seems we need to drop support for chacha20
@@ -43,8 +50,26 @@ func DefaultConfig() (*ssh.ServerConfig, error) {
 				// "chacha20-poly1305@openssh.com",
 			},
 		},
-		MaxAuthTries:      1,
-		PublicKeyCallback: selectKeyImplementation(),
+		MaxAuthTries: 1,
+		PublicKeyCallback: func(c ssh.ConnMetadata, pubKey ssh.PublicKey) (*ssh.Permissions, error) {
+			allow, err := publickey.Authorize(c.User(), pubKey)
+			if err != nil {
+				return nil, fmt.Errorf("unable to authorize: %w", err)
+			}
+
+			if !allow {
+				return nil, fmt.Errorf("denied")
+			}
+
+			return &ssh.Permissions{
+				// Record the public key used for authentication.
+				Extensions: map[string]string{
+					"pubkey-fp":  ssh.FingerprintSHA256(pubKey),
+					"pubkey-ish": fingerprintIsh(pubKey),
+					"pubkey":     string(ssh.MarshalAuthorizedKey(pubKey)),
+				},
+			}, nil
+		},
 		// We will use the keyboard interactive auth method as a way of telling the user that
 		// he needs to create a public key and use that instead - we should not get here if the user already has
 		// a working key and presented that in the first place
@@ -78,29 +103,4 @@ func fingerprintIsh(pubKey ssh.PublicKey) string {
 	sha256sum := sha256.Sum256(pubKey.Marshal())
 	enc := base32.NewEncoding("abcdefghijklmnopqrstuvwxyz234567").WithPadding(base32.NoPadding)
 	return enc.EncodeToString(sha256sum[:])
-}
-
-func selectKeyImplementation() PublicKeyCB {
-	switch os.Getenv("REMOTEMOE_PUBLICKEY_INFRASTRUCTURE") {
-	case "github":
-		return func(c ssh.ConnMetadata, pubKey ssh.PublicKey) (*ssh.Permissions, error) {
-			return nil, fmt.Errorf("github not implemented")
-		}
-	case "open":
-		return func(c ssh.ConnMetadata, pubKey ssh.PublicKey) (*ssh.Permissions, error) {
-			return &ssh.Permissions{
-				// Record the public key used for authentication.
-				Extensions: map[string]string{
-					"pubkey-fp":  ssh.FingerprintSHA256(pubKey),
-					"pubkey-ish": fingerprintIsh(pubKey),
-					"pubkey":     string(ssh.MarshalAuthorizedKey(pubKey)),
-				},
-			}, nil
-		}
-	default:
-		return func(c ssh.ConnMetadata, pubKey ssh.PublicKey) (*ssh.Permissions, error) {
-			log.Printf("invalid or no public key infrastructure choosen")
-			return nil, fmt.Errorf("invalid or no public key infrastructure choosen")
-		}
-	}
 }

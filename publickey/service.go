@@ -1,8 +1,8 @@
 package publickey
 
 import (
+	"fmt"
 	"log"
-	"sync"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -11,25 +11,23 @@ type Source interface {
 	Authorize(string, ssh.PublicKey) (bool, error)
 }
 
-var sources []Source
-
-func init() {
-	sources = make([]Source, 0)
-}
+// at some point it might be interresting to support
+// multiple sources at once - for now, lets go with
+// only one source at a time
+var source Source
 
 func RegisterSource(s Source) {
-	sources = append(sources, s)
-	log.Printf("%T publickey plugin registered", s)
+	if source != nil {
+		log.Fatalf("publickey source: cannot use %T, %T already selected", s, source)
+	}
+	source = s
+	log.Printf("publickey source: using %T for authentication", s)
 }
 
 func Authorize(u string, k ssh.PublicKey) (bool, error) {
-	var wg sync.WaitGroup
-	for _, s := range sources {
-		wg.Add(1)
-		go func(s Source) {
-			wg.Done()
-		}(s)
+	if source == nil {
+		log.Printf("publickey: no authentication source chosen")
+		return false, fmt.Errorf("no public key source")
 	}
-
-	wg.Wait()
+	return source.Authorize(u, k)
 }

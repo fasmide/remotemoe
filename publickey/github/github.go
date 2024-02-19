@@ -2,6 +2,7 @@ package github
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -27,7 +28,19 @@ type Github struct {
 	Endpoint string
 }
 
-func (g *Github) Authorize(u string, k ssh.PublicKey) (bool, error) {
+func (g *Github) Authorize(u string, key ssh.PublicKey) (bool, error) {
+	keys, err := g.PublicKeys(u)
+	if err != nil {
+		log.Printf("github: unable to lookup keys for %s: %s", u, err)
+		return false, fmt.Errorf("unable to lookup keys")
+	}
+
+	for _, k := range keys {
+		if bytes.Equal(k.Marshal(), key.Marshal()) {
+			return true, nil
+		}
+	}
+
 	return false, nil
 }
 
