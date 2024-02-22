@@ -29,7 +29,7 @@ remotemoe accepts any key - see ya!`
 func DefaultConfig() (*ssh.ServerConfig, error) {
 	config := &ssh.ServerConfig{
 		BannerCallback: func(conn ssh.ConnMetadata) string {
-			return "\nWARNING: authentication is coming: https://github.com/fasmide/remotemoe/discussions/14\n\n"
+			return os.Getenv("REMOTEMOE_SSH_BANNER")
 		},
 		// try to take advantage of AES-NI, by moving chachapoly last of preferred ciphers
 		// 	* Well that didnt work - it seems the official ssh client really likes chacha20,
