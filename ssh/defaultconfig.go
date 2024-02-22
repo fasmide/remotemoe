@@ -28,6 +28,9 @@ remotemoe accepts any key - see ya!`
 // DefaultConfig generates a default ssh.ServerConfig
 func DefaultConfig() (*ssh.ServerConfig, error) {
 	config := &ssh.ServerConfig{
+		BannerCallback: func(conn ssh.ConnMetadata) string {
+			return os.Getenv("REMOTEMOE_SSH_BANNER")
+		},
 		// try to take advantage of AES-NI, by moving chachapoly last of preferred ciphers
 		// 	* Well that didnt work - it seems the official ssh client really likes chacha20,
 		//	so if we really want AES-NI it seems we need to drop support for chacha20
