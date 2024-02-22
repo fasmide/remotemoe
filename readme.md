@@ -136,3 +136,6 @@ remotemoe and especially Cloudflare does a lot more than this, but to highlight 
 * Cloudflare provides a massive Highly Available service at a cost - remotemoe does not.
 * Cloudflare requires you to create an account if you need to define hostnames or bring a custom domain - remotemoe does not.
 * remotemoe can be used as an SSH ProxyJump-host and is not limited to any specific protocol - any TCP port is reachable through remotemoe.
+
+See also [Awesome Tunneling](https://github.com/anderspitman/awesome-tunneling) list for alternatives and additional software.
+
